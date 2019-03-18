@@ -17,6 +17,7 @@ type
     procedure TestMultiply;
     procedure TestBrackets;
     procedure TestArithmetic;
+    procedure TestArrayCreate;
   end;
 
 implementation
@@ -24,13 +25,13 @@ implementation
 procedure TTestWel.SetUp;
 begin
   inherited;
-  fC := TWel.Create;
+  //fC := TWel.Create;
 end;
 
 procedure TTestWel.TearDown;
 begin
   inherited;
-  fC.Free; 
+  //fC.Free;
 end;
 
 procedure TTestWel.TestPlus;
@@ -71,6 +72,20 @@ begin
   CheckEquals('-10', fC.Calc('5*-2'), 'fails on "5*-2"');
   CheckEquals('14', fC.Calc('2+3*4'), 'fails on "2+3*4"');
   CheckEquals('20', fC.Calc('(2+3)*4'), 'fails on "(2+3)*4"');
+end;
+
+procedure TTestWel.TestArrayCreate;
+begin
+  fC := TWel.Create;
+  CheckEquals('[1,2,4,6]',fC.Calc('A:=[1 2 4 6]'),'fails on "A:=[1 2 4 6]"');
+  CheckEquals('[1,2,4,6]',fC.Calc('A:=[1,2,4,6]'),'fails on "A:=[1,2,4,6]"');
+  CheckEquals('[1,2,4,6]',fC.Calc('A:=[1, 2, 4, 6]'),'fails on "A:=[1, 2, 4, 6]"');
+  CheckEquals('[1,2,4,6]',fC.Calc('A:=[1 2,4 6]'),'fails on "A:=[1 2,4 6]"');
+  CheckEquals('[1,2,4,6]',fC.Calc('A:=[1, 2, 4, 6, ]'),'fails on "A:=[1 2 4 6, ]"');
+  CheckEquals('[1,[1,2,3],4,6]',fC.Calc('A:=[1, [1 2 3], 4, 6, ]'),'fails on "A:=[1 2 4 6, ]"');
+  CheckEquals('[1,[1,2,3],4,"cat"]',fC.Calc('A:=[1 [1 2,3,],  4"cat"]'),'fails on "A:=[1 [1 2,3,],  4"cat"]"');
+
+  fC.Free;
 end;
 
 initialization
