@@ -275,7 +275,13 @@ begin
   i := 1;
   while i <= Length(fE) do
   begin
-    if (fE[i] = '/') and (Length(fE) > i) and (fE[i+1] = '/') then Exit;                  // comment
+    if (fE[i] = '/') and (Length(fE) > i) and (fE[i+1] = '/') then
+    begin
+      fV.fData.Clear;
+      fO.fData.Clear;
+      Result := '';
+      Exit;                  // comment
+    end;
     case fE[i] of
       // values or variables
       '"' : begin                                                          // this is a string value
@@ -314,6 +320,7 @@ begin
                               a := c.fV.Pop()+ ',' + a;
                             c.Free;
                             fV.Push('['+a+']');
+                            pv := True;
                             Break;
                           end;
                         end; 
@@ -678,7 +685,8 @@ begin
  else if (ta = vtString) and ((tb = vtInteger)) or (tb = vtFloat) then                     // str+num
    Result := '"' + Copy(A, 2, Length(A)-2) + B + '"'
  else if (ta = vtString) and (tb = vtString) then                                      // str+str = &
-   Result := '"' + Copy(A, 2, Length(A)-2) + Copy(B, 2, Length(B)-2) + '"';
+   Result := '"' + Copy(A, 2, Length(A)-2) + Copy(B, 2, Length(B)-2) + '"'
+ else raise ECalcException.Create('Unsupported types of "+" operator');
 end;
 
 function TWel._sub(A, B: string): string;
@@ -689,6 +697,7 @@ begin
  tb := GetValType(B);
  if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
    Result := FloatToStr(StrToFloat(A) - StrToFloat(B))
+ else raise ECalcException.Create('Unsupported types of "-" operator');
 end;
 
 function TWel._multiply(A, B: string): string;
@@ -699,6 +708,7 @@ begin
  tb := GetValType(B);
  if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
    Result := FloatToStr(StrToFloat(A) * StrToFloat(B))
+ else raise ECalcException.Create('Unsupported types of "*" operator');
 end;
 
 function TWel._divide(A, B: string): string;
@@ -714,7 +724,7 @@ begin
      if fb <> 0 then Result := FloatToStr(StrToFloat(A) / fb )
        else raise ECalcException.Create('Division by zero');
    end
- else raise ECalcException.Create('Division operands must be a numbers'); // TODO: add arrays  
+ else raise ECalcException.Create('Division operands must be a numbers'); // TODO: add arrays
 end;
 
 function TWel._div(A, B: string): string;
@@ -734,7 +744,7 @@ begin
 end;
 
 function TWel._mod(A, B: string): string;
-var                                       // remainder	
+var                                       // remainder
   ta, tb : TValType;
   fa, fb : Double;
 begin
@@ -746,7 +756,7 @@ begin
      fb := StrToFloat(B);
      Result := FloatToStr( fa - Trunc(fa/fb)*fb );
    end
- else raise ECalcException.Create('Division operands must be a numbers'); // TODO: add arrays
+ else raise ECalcException.Create('Mod (remainder) operands must be a numbers'); // TODO: add arrays
 end;
 
 function TWel._concat(A, B: string): string;
