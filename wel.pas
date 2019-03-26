@@ -24,9 +24,11 @@ type
     property Result: string read GetResult;
   end;
 
-  ECalcException = Exception;
+  EWelException = Exception;
 
   TValType = (vtNone, vtString, vtInteger, vtFloat, vtArray, vtVar, vtFunction);
+
+  TMapFunc = function(A, B: string): string of object;
 
   TWel = class
     fE: string;
@@ -47,7 +49,9 @@ type
     function UserFunc(Name: string; ArgCount: Integer): string;
     function Func(Name: string): string;
     function _add(A,B: string): string;
+    function _addx(A,B: string): string;
     function _sub(A,B: string): string;
+    function _subx(A,B: string): string;
     function _multiply(A,B: string): string;
     function _divide(A,B: string): string;
     function _div(A,B: string): string;
@@ -57,6 +61,7 @@ type
     function _len(A: string): string;
     function _cmp(A, B: string): string;
     function _map(Arr, Func: string): string;
+    function map(Arr, B: string; Func: TMapFunc): string;
   public
     constructor Create();
     destructor Free;
@@ -147,7 +152,7 @@ begin
    // check type of leftVar: variable, array element or function
    i := 1;
    if not (leftVar[i] in ['a'..'z', 'A'..'Z', '@']) then
-     raise ECalcException.CreateFmt('Illegal variable name ''%s'' on left part of assignment operator',
+     raise EWelException.CreateFmt('Illegal variable name ''%s'' on left part of assignment operator',
        [leftVar]);
    v := vtVar;
    while (i <= Length(leftVar)) and (leftVar[i] in ['a'..'z', 'A'..'Z','0'..'9','.','_', '(', '[']) do
@@ -183,7 +188,7 @@ begin
                // check arguments, it is must be a variables only
                for j := i+1 to Length(leftVar)-i do
                  if not (leftVar[j] in [' ', 'a'..'z', 'A'..'Z','0'..'9','.','_', ',']) then
-                   raise ECalcException.CreateFmt('On user func "%s" define arguments must containe arguments only, without expression', [Copy(leftVar, 1, Pos('(', leftVar)-1)]);
+                   raise EWelException.CreateFmt('On user func "%s" define arguments must containe arguments only, without expression', [Copy(leftVar, 1, Pos('(', leftVar)-1)]);
                r := LowerCase(Copy(leftVar, 1, i));
                a := Trim(Copy(leftVar, i+1, Length(leftVar)-i-1));
                i := 1;
@@ -213,7 +218,7 @@ begin
                  while fV.Count > 0 do
                    inx[fV.Count] := StrToInt(fV.Pop());
                except
-                 raise ECalcException.Create('Array index must be integer, set');
+                 raise EWelException.Create('Array index must be integer, set');
                end;
                r := fVars.Values[leftVar];
                  if GetValType(r) <> vtArray then r := '[0]';
@@ -255,7 +260,7 @@ begin
  begin
    if str[i] = '.' then
    begin
-     if dotFlag then raise ECalcException.CreateFmt('Invalid number at char %d, double dot', [i-1]);
+     if dotFlag then raise EWelException.CreateFmt('Invalid number at char %d, double dot', [i-1]);
      dotFlag := True;
    end;
    Result := Result + str[i];
@@ -365,7 +370,7 @@ begin
                                                       inx[fV.Count] := StrToInt(p);
                                                     end;
                                                 except
-                                                  raise ECalcException.Create('Array index must be integer, get');
+                                                  raise EWelException.Create('Array index must be integer, get');
                                                 end;
                                                 fV.Push(GetArrValR(fVars.Values[a], inx));
                                               end;
@@ -387,7 +392,7 @@ begin
                                   fV.Push(fVars.Values[a]);
                                   pv := True;
                                 end else
-                                  raise ECalcException.CreateFmt('Unknown variable ''%s''', [a]);
+                                  raise EWelException.CreateFmt('Unknown variable ''%s''', [a]);
                               end;
                            end;
       '+','-','*','/','\','%','&','^','(',',','=' : begin                                // one symbol operators
@@ -626,9 +631,9 @@ begin
  end;
  if ErrorIfNotFount then  // error raising
    if f then
-     raise ECalcException.CreateFmt('Wrong arguments count in ''%s'' function', [Func])
+     raise EWelException.CreateFmt('Wrong arguments count in ''%s'' function', [Func])
    else
-     raise ECalcException.CreateFmt('Undefined function ''%s''', [Func]);
+     raise EWelException.CreateFmt('Undefined function ''%s''', [Func]);
 end;
 
 function TWel.UserFunc(Name: string; ArgCount: Integer): string;
@@ -669,12 +674,15 @@ begin
  if LowerCase(Name) = 'plus(' then Result := _add(fV.Pop(), fV.Pop()) else
  if LowerCase(Name) = 'len(' then Result := _len(fV.Pop()) else
  if LowerCase(Name) = 'map(' then Result := _map(fV.Pop(), fV.Pop()) else
- Result := UserFunc(Name, fV.Count - fLfac);
+ if FindUserFunc(Name, fV.Count - fLfac, False) = -1 then
+   raise EWelException.CreateFmt('Function %s is undefined', [Name])
+ else Result := UserFunc(Name, fV.Count - fLfac);
 end;
 
 function TWel._add(A, B: string): string;
 var
   ta, tb : TValType;
+  p : TMapFunc;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
@@ -684,31 +692,76 @@ begin
    Result := '"' + A + Copy(B, 2, Length(B)-2) + '"'
  else if (ta = vtString) and ((tb = vtInteger)) or (tb = vtFloat) then                     // str+num
    Result := '"' + Copy(A, 2, Length(A)-2) + B + '"'
- else if (ta = vtString) and (tb = vtString) then                                      // str+str = &
+ else if (ta = vtString) and (tb = vtString) then                                          // str+str
    Result := '"' + Copy(A, 2, Length(A)-2) + Copy(B, 2, Length(B)-2) + '"'
- else raise ECalcException.Create('Unsupported types of "+" operator');
+ else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat) or (tb = vtString)) then
+   begin
+     p := _add;
+     Result := map(A, B, p);
+   end
+ else if ((ta = vtInteger) or (ta = vtFloat) or (ta = vtString)) and  (tb = vtArray) then
+   begin
+     p := _addx;
+     Result := map(B, A, p);
+   end
+ else
+   raise EWelException.Create('Unsupported types of "+" operator');
+end;
+
+function TWel._addx(A, B: string): string;
+begin
+  Result := _add(B, A);
 end;
 
 function TWel._sub(A, B: string): string;
 var
   ta, tb : TValType;
+  p : TMapFunc;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
- if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
+ if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then     // num+num
    Result := FloatToStr(StrToFloat(A) - StrToFloat(B))
- else raise ECalcException.Create('Unsupported types of "-" operator');
+ else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
+   begin
+     p := _sub;
+     Result := map(A, B, p);
+   end
+ else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
+   begin                          // "-" is non commutative operator
+     p := _subx;
+     Result := map(B, A, p);
+   end
+ else
+   raise EWelException.Create('Unsupported types of "-" operator');
+end;
+
+function TWel._subx(A, B: string): string;
+begin
+  Result := _sub(B, A);
 end;
 
 function TWel._multiply(A, B: string): string;
 var
   ta, tb : TValType;
+  p : TMapFunc;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
  if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
    Result := FloatToStr(StrToFloat(A) * StrToFloat(B))
- else raise ECalcException.Create('Unsupported types of "*" operator');
+ else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
+   begin
+     p := _multiply;
+     Result := map(A, B, p);
+   end
+ else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
+   begin
+     p := _multiply;
+     Result := map(B, A, p);
+   end
+ else
+  raise EWelException.Create('Unsupported types of "*" operator');
 end;
 
 function TWel._divide(A, B: string): string;
@@ -722,9 +775,10 @@ begin
    begin
      fb := StrToFloat(B);
      if fb <> 0 then Result := FloatToStr(StrToFloat(A) / fb )
-       else raise ECalcException.Create('Division by zero');
+       else raise EWelException.Create('Division by zero');
    end
- else raise ECalcException.Create('Division operands must be a numbers'); // TODO: add arrays
+ else
+   raise EWelException.Create('Division operands must be a numbers'); // TODO: add arrays
 end;
 
 function TWel._div(A, B: string): string;
@@ -740,7 +794,7 @@ begin
      fb := StrToFloat(B);
      Result := IntToStr( Trunc(fa/fb) );
    end
- else raise ECalcException.Create('Division operands must be a numbers'); // TODO: add arrays
+ else raise EWelException.Create('Division operands must be a numbers'); // TODO: add arrays
 end;
 
 function TWel._mod(A, B: string): string;
@@ -756,7 +810,7 @@ begin
      fb := StrToFloat(B);
      Result := FloatToStr( fa - Trunc(fa/fb)*fb );
    end
- else raise ECalcException.Create('Mod (remainder) operands must be a numbers'); // TODO: add arrays
+ else raise EWelException.Create('Mod (remainder) operands must be a numbers'); // TODO: add arrays
 end;
 
 function TWel._concat(A, B: string): string;
@@ -778,7 +832,7 @@ begin
  tb := GetValType(B);
  if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
    Result := FloatToStr(Power(StrToFloat(A), StrToFloat(B)))
- else raise ECalcException.Create('Power operagor arguments must be a numbers');
+ else raise EWelException.Create('Power operagor arguments must be a numbers');
 end;
 
 function TWel._len(A: string): string;
@@ -790,7 +844,7 @@ begin
    Result := IntToStr(GetArrLen(A))
  else if ta = vtString then
    Result := IntToStr(Length(A)-2)
- else raise ECalcException.Create('Len() function argument must be a Array or String');
+ else raise EWelException.Create('Len() function argument must be a Array or String');
 end;
 
 function TWel._map(Arr, Func: string): string;
@@ -802,7 +856,7 @@ begin
  ta := GetValType(Arr);
  tf := GetValType(Func);
  if (ta <> vtArray) or (tf <> vtFunction) then
-   raise ECalcException.Create('map() function first argument must be a array, second argument must be a function');
+   raise EWelException.Create('map() function first argument must be a array, second argument must be a function');
  Func := Copy(Func, 2, Length(Func)-1);
  a := 1;
  i := FindUserFunc(Func, 1, False);
@@ -811,11 +865,11 @@ begin
    i := FindUserFunc(Func, 2, False);
    a := 2;
  end;
- if i = -1 then raise ECalcException.Create('In map() function second argument must be a '+
+ if i = -1 then raise EWelException.Create('In map() function second argument must be a '+
    'function with 1 or 2 arguments.'#13'First argument is element value, second argument is element index.');
  // call Func for all array elements
  c := TWel.Create;
- c.fVars.Text := fVars.Text;  
+ c.fVars.Text := fVars.Text;
  for i := 0 to GetArrLen(Arr)-1 do
  begin
    if a = 1 then c.fE := Func + '(' + GetArrVal(Arr, i) + ')';
@@ -824,6 +878,15 @@ begin
  end;
  c.Free;
  Result := Arr;
+end;
+
+function TWel.map(Arr, B: string; Func: TMapFunc): string;
+var
+  i : Integer;
+begin
+ Result := Arr;
+ for i := 0 to GetArrLen(Arr)-1 do
+   Result := SetArrVal(Result, Func(GetArrVal(Result, i), B), i);
 end;
 
 function TWel._cmp(A, B: string): string;
@@ -837,5 +900,11 @@ begin
  else if ((ta = vtString) or (tb = vtString)) then
    if A = B then Result := '1' else Result := '0';
 end;
+
+
+
+
+
+
 
 end.
