@@ -45,23 +45,39 @@ type
     procedure CalcStep();
     //
     function GetValType(Val: string): TValType;
-    //
     function UserFunc(Name: string; ArgCount: Integer): string;
     function Func(Name: string): string;
-    function _add(A,B: string): string;
+    function Map(Arr, B: string; Func: TMapFunc): string;
+    //
+    function _add(A,B: string): string;          //   +
     function _addx(A,B: string): string;
-    function _sub(A,B: string): string;
+    function _sub(A,B: string): string;          //   -
     function _subx(A,B: string): string;
-    function _multiply(A,B: string): string;
-    function _divide(A,B: string): string;
-    function _div(A,B: string): string;
-    function _mod(A,B: string): string;
-    function _concat(A,B: string): string;
-    function _power(A,B: string): string;
+    function _multiply(A,B: string): string;     //   *
+    function _divide(A,B: string): string;       //   /
+    function _dividex(A, B: string): string;
+    function _div(A,B: string): string;          //   \
+    function _divx(A,B: string): string;
+    function _mod(A,B: string): string;          //   &
+    function _modx(A,B: string): string;
+    function _concat(A,B: string): string;       //   &
+    function _power(A,B: string): string;        //   ^
+    function _eq(A, B: string): string;          //   =
+    function _ne(A, B: string): string;          //   <>
+    function _lt(A, B: string): string;          //   <
+    function _gt(A, B: string): string;          //   >
+    function _le(A, B: string): string;          //   <=
+    function _ge(A, B: string): string;          //   >=
+
+
+
+
+
+
     function _len(A: string): string;
-    function _cmp(A, B: string): string;
     function _map(Arr, Func: string): string;
-    function map(Arr, B: string; Func: TMapFunc): string;
+
+
   public
     constructor Create();
     destructor Free;
@@ -316,10 +332,10 @@ begin
                           Dec(d);
                           Inc(i);
                           if d = 0 then
-                          begin
+                          begin               
                             c := TWel.Create;
                             c.fVars.Text := fVars.Text;
-                            c.fE := Copy(fE, j+1, i-j-2);
+                            c.fE := '('+Copy(fE, j+1, i-j-2)+')';
                             a := c.DoWork();   // TODO: DoWork
                             while c.fV.Count > 0 do
                               a := c.fV.Pop()+ ',' + a;
@@ -395,16 +411,22 @@ begin
                                   raise EWelException.CreateFmt('Unknown variable ''%s''', [a]);
                               end;
                            end;
-      '+','-','*','/','\','%','&','^','(',',','=' : begin                                // one symbol operators
+      '+','-','*','/','\','%','&','^','(',',','=','<','>' : begin                                // one symbol operators
                                       if not pv and ((fE[i] = '+') or (fE[i] = '-')) then
                                       begin
                                         fV.Push('0');                        // zero element for sub
-                                        p := a;
                                         pv := True;
                                       end else
                                       while CanCalc(fE[i]) do
                                         CalcStep();
-                                      if fE[i] <> ',' then fO.Push(fE[i]);
+                                      if ((fE[i] = '<') and (fE[i+1] = '>')) or
+                                         ((fE[i] = '<') and (fE[i+1] = '=')) or
+                                         ((fE[i] = '>') and (fE[i+1] = '=')) then
+                                           begin
+                                             fO.Push(fE[i]+fE[i+1]);
+                                             Inc(i);
+                                           end  
+                                      else if fE[i] <> ',' then fO.Push(fE[i]);
                                       p := fE[i];
                                       pv := False;
                                       Inc(i);
@@ -438,7 +460,12 @@ begin
     if W = '%' then fV.Push( _mod(A, B) ) else
     if W = '&' then fV.Push( _concat(A, B) ) else
     if W = '^' then fV.Push( _power(A, B) ) else
-    if W = '=' then fV.Push( _cmp(A, B) ) else
+    if W = '=' then fV.Push( _eq(A, B) ) else
+    if W = '<>' then fV.Push( _ne(A, B) ) else
+    if W = '<' then fV.Push( _lt(A, B) ) else
+    if W = '>' then fV.Push( _gt(A, B) ) else
+    if W = '<=' then fV.Push( _le(A, B) ) else
+    if W = '>=' then fV.Push( _ge(A, B) ) else
   end;
 end;
 
@@ -451,10 +478,9 @@ function TWel.CanCalc(Op: string): Boolean;
     else if (Op = '\') or (Op = '%') then Result := 2
     else if (Op = '+') or (Op = '-') then Result := 3
     else if (Op = '&') then Result := 4
-    else if (Op = ',') then Result := 5
-    else if (Op[Length(Op)] = '(') then Result := 6                                          // func
-    //else if (Op = '*') or (Op = '/') or (Op = '&') or (Op = '^') then Result := 1
-    //else if (Op = '+') or (Op = '-') then Result := 2
+    else if (Op = '=') or (Op = '<>') or (Op = '<') or (Op = '>') or (Op = '<=') or (Op = '>=') then Result := 5
+    else if (Op = ',') then Result := 6
+    else if (Op[Length(Op)] = '(') then Result := 7           // func
     else fErr := 'Invalid operand';
   end;
 var
@@ -464,7 +490,7 @@ begin
  if fO.Count = 0 then Exit;
  p1 := GetPriority(Op);
  p2 := GetPriority(fO.Peek());
- Result := (p1 >= 0) and (p2 >= 0) and (p1 >= p2);
+ Result := (p1 >= 0) and (p2 >= 0) and (p1 > p2);
 end;
 
 function TWel.GetValType(Val: string): TValType;
@@ -697,12 +723,12 @@ begin
  else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat) or (tb = vtString)) then
    begin
      p := _add;
-     Result := map(A, B, p);
+     Result := Map(A, B, p);
    end
  else if ((ta = vtInteger) or (ta = vtFloat) or (ta = vtString)) and  (tb = vtArray) then
    begin
      p := _addx;
-     Result := map(B, A, p);
+     Result := Map(B, A, p);
    end
  else
    raise EWelException.Create('Unsupported types of "+" operator');
@@ -725,12 +751,12 @@ begin
  else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
    begin
      p := _sub;
-     Result := map(A, B, p);
+     Result := Map(A, B, p);
    end
  else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
    begin                          // "-" is non commutative operator
      p := _subx;
-     Result := map(B, A, p);
+     Result := Map(B, A, p);
    end
  else
    raise EWelException.Create('Unsupported types of "-" operator');
@@ -753,12 +779,12 @@ begin
  else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
    begin
      p := _multiply;
-     Result := map(A, B, p);
+     Result := Map(A, B, p);
    end
  else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
    begin
      p := _multiply;
-     Result := map(B, A, p);
+     Result := Map(B, A, p);
    end
  else
   raise EWelException.Create('Unsupported types of "*" operator');
@@ -768,6 +794,7 @@ function TWel._divide(A, B: string): string;
 var
   ta, tb : TValType;
   fb : Double;
+  p : TMapFunc;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
@@ -777,14 +804,30 @@ begin
      if fb <> 0 then Result := FloatToStr(StrToFloat(A) / fb )
        else raise EWelException.Create('Division by zero');
    end
+ else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
+   begin
+     p := _divide;
+     Result := Map(A, B, p);
+   end
+ else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
+   begin
+     p := _dividex;     
+     Result := Map(B, A, p);
+   end
  else
-   raise EWelException.Create('Division operands must be a numbers'); // TODO: add arrays
+   raise EWelException.Create('Division operands must be a numbers or number and array');
+end;
+
+function TWel._dividex(A, B: string): string;
+begin
+  Result := _divide(B, A);
 end;
 
 function TWel._div(A, B: string): string;
 var                                       // integer division
   ta, tb : TValType;
   fa, fb : Double;
+  p : TMapFunc;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
@@ -794,13 +837,29 @@ begin
      fb := StrToFloat(B);
      Result := IntToStr( Trunc(fa/fb) );
    end
+  else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
+   begin
+     p := _div;
+     Result := Map(A, B, p);
+   end
+ else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
+   begin
+     p := _divx;
+     Result := Map(B, A, p);
+   end
  else raise EWelException.Create('Division operands must be a numbers'); // TODO: add arrays
+end;
+
+function TWel._divx(A, B: string): string;
+begin
+  Result := _div(B, A);
 end;
 
 function TWel._mod(A, B: string): string;
 var                                       // remainder
   ta, tb : TValType;
   fa, fb : Double;
+  p : TMapFunc;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
@@ -810,7 +869,22 @@ begin
      fb := StrToFloat(B);
      Result := FloatToStr( fa - Trunc(fa/fb)*fb );
    end
+ else if (ta = vtArray) and ((tb = vtInteger) or (tb = vtFloat)) then
+   begin
+     p := _mod;
+     Result := Map(A, B, p);
+   end
+ else if ((ta = vtInteger) or (ta = vtFloat)) and  (tb = vtArray) then
+   begin
+     p := _modx;
+     Result := Map(B, A, p);
+   end
  else raise EWelException.Create('Mod (remainder) operands must be a numbers'); // TODO: add arrays
+end;
+
+function TWel._modx(A, B: string): string;
+begin
+  Result := _mod(B, A);
 end;
 
 function TWel._concat(A, B: string): string;
@@ -880,7 +954,7 @@ begin
  Result := Arr;
 end;
 
-function TWel.map(Arr, B: string; Func: TMapFunc): string;
+function TWel.Map(Arr, B: string; Func: TMapFunc): string;
 var
   i : Integer;
 begin
@@ -889,17 +963,60 @@ begin
    Result := SetArrVal(Result, Func(GetArrVal(Result, i), B), i);
 end;
 
-function TWel._cmp(A, B: string): string;
-var
+function TWel._eq(A, B: string): string;
+begin         // =
+ if A = B then Result := '1' else Result := '0';                      // <>            ne
+end;                                                                  // <             lt
+                                                                      // >             gt
+function TWel._ne(A, B: string): string;                              // <=            le
+begin         // <>                                                   // >=            ge
+ if A <> B then Result := '1' else Result := '0';
+end;
+
+function TWel._lt(A, B: string): string;
+var           // <
   ta, tb : TValType;
 begin
  ta := GetValType(A);
  tb := GetValType(B);
  if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
-   if StrToFloat(A) = StrToFloat(B) then Result := '1' else Result := '0'
- else if ((ta = vtString) or (tb = vtString)) then
-   if A = B then Result := '1' else Result := '0';
+   if StrToFloat(A) < StrToFloat(B) then Result := '1' else Result := '0'
+ else if (ta = vtString) and (tb = vtString) then
+   if CompareStr(A, B) < 0 then Result := '1' else Result := '0'
+ else raise EWelException.Create('Unsupported types in compare operator');
 end;
+
+function TWel._gt(A, B: string): string;
+var           // >
+  ta, tb : TValType;
+begin
+ ta := GetValType(A);
+ tb := GetValType(B);
+ if ((ta = vtInteger) or (ta = vtFloat)) and ((tb = vtInteger) or (tb = vtFloat)) then
+   if StrToFloat(A) > StrToFloat(B) then Result := '1' else Result := '0'
+ else if (ta = vtString) and (tb = vtString) then
+   if CompareStr(A, B) > 0 then Result := '1' else Result := '0'
+ else raise EWelException.Create('Unsupported types in compare operator');
+end;
+
+function TWel._le(A, B: string): string;
+begin         // <=
+ if (_eq(A, B) = '1') or (_lt(A, B) = '1') then Result := '1' else Result := '0';
+end;
+
+function TWel._ge(A, B: string): string;
+begin         // >=
+ if (_eq(A, B) = '1') or (_gt(A, B) = '1') then Result := '1' else Result := '0';
+end;
+
+
+
+
+
+
+
+
+
 
 
 

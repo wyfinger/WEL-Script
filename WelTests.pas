@@ -14,11 +14,21 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    // operators
     procedure TestPlus;
     procedure TestMinus;
     procedure TestMultiply;
     procedure TestDivide;
+    procedure TestConcat;
+    procedure TestPower;
+    procedure TestCompare;      
+
+
+
     procedure TestBrackets;
+    // complex variable types: arrays and strings
+    
+    // build in functions and variables
     procedure TestArithmetic;
     procedure TestArrayCreate;
   end;
@@ -66,12 +76,12 @@ begin
   // num + array
   CheckEquals('[124,125,126]', fC.Calc('123+[1,2,3]'), 'fails on 123+[1,2,3]');
   CheckEquals('[3.65,3.968,4.95428,5.377]', fC.Calc('2.236 + [1.414  1.7320 2.71828,  3.141]'), 'fails on 2.236 + [1.414  1.7320 2.71828,  3.141]');
-  // str + array
-  CheckEquals('["6 kV","10 kV","35 kV","110 kV","220 kV"]', fC.Calc('[6 10 35 110 220] + " kV"'), 'fails on [6 10 35 110 220] + " kV"');
   // array + str
-  CheckEquals('["Age is 18","Age is 6"]', fC.Calc('"Age is " + [18+6]'), 'fails on "Age is " + [18+6]');
+  CheckEquals('["6 kV","10 kV","35 kV","110 kV","220 kV"]', fC.Calc('[6 10 35 110 220] + " kV"'), 'fails on [6 10 35 110 220] + " kV"');
+  // str + array
+  CheckEquals('["Age is 18","Age is 6"]', fC.Calc('"Age is " + [18,6]'), 'fails on "Age is " + [18,6]');
   // array + array
-  // TODO: only if length of arrays equal summ by elements  
+  // TODO: only if length of arrays equal summ by elements
 
   FreeAndNil(fC);
 end;
@@ -88,7 +98,7 @@ begin
   // num - array
   CheckEquals('[0,-2,-3,-4]', fC.Calc('1-[1 3, 4 5]'), 'fails on 1-[1 3, 4 5]');
   // array - num
-  CheckEquals('[0.4,1.2,-5.1,-0.1]', fC.Calc('[5.5, 6.3, -5]-5.1'), 'fails on [5.5, 6.3, -5]-5.1');
+  CheckEquals('[0.4,1.2,-10.1]', fC.Calc('[5.5, 6.3, -5]-5.1'), 'fails on [5.5, 6.3, -5]-5.1');
 
   FreeAndNil(fC);
 end;
@@ -120,17 +130,92 @@ begin
   // (\) is a integer devide and (%) is a remainder operators
   fC := TWel.Create;
 
-  // num + num
+  // num / num
   CheckEquals('2', fC.Calc('10/5'), 'fails on 10/5');
   CheckEquals('0.5', fC.Calc('5 /10'), 'fails on 5 /10');
   CheckEquals('-10', fC.Calc('-30/ 3'), 'fails on -30/ 3');
   CheckEquals('-3', fC.Calc('15/-5'), 'fails on 15/-5');
 
+  // num \ num
+  CheckEquals('3', fC.Calc('10\3'), 'fails on 10\3');
+  CheckEquals('0', fC.Calc('5 \10'), 'fails on 5 \10');
+  CheckEquals('0', fC.Calc('0\ 9.532'), 'fails on 0\ 9.532');
+  CheckEquals('2', fC.Calc('0.3\0.1'), 'fails on 0.3\0.1');  // FP bug! it's normall
+
+  // num % num
+  CheckEquals('1', fC.Calc('10%3'), 'fails on 10%3');
+  CheckEquals('5', fC.Calc('5%10'), 'fails on 5%10');
+  CheckEquals('0', fC.Calc('0%9.532'), 'fails on 0%9.532');
+  CheckEquals('0.1', fC.Calc('0.3%0.1'), 'fails on 0.3%0.1'); // FP bug! it's normall
+
   // div by zero
   CheckException(TestDivideByZero, EWelException, 'falis on divide by zero, it must raise exceprion');
 
+  // nums and arrays
+  CheckEquals('[3,22,0.2]', fC.Calc('[9,66,0.6]/3'), '[9,66,0.6]/3');
+  CheckEquals('[44,6,660]', fC.Calc('132/[3,22,0.2]'), '132/[3,22,0.2]');
+
+  CheckEquals('[3,22,0]', fC.Calc('[9,66,0.6]\3'), '[9,66,0.6]\3');
+  CheckEquals('[51,7,769]', fC.Calc('154\[3,22,0.2]'), '154\[3,22,0.2]');
+
+  CheckEquals('[9,6,0.6]', fC.Calc('[9,66,0.6]%10'), '[9,66,0.6]%10');
+  CheckEquals('[0,0,0]', fC.Calc('132%[3,22,2]'), '132%[3,22,2]');
+
   FreeAndNil(fC);
 end;
+
+procedure TTestWelBasic.TestConcat;
+begin
+  // string concatenation (&) operator, it can be used with
+  // strings ot numbers or arrays, like a (+)
+  fC := TWel.Create;
+
+  // str & str
+  CheckEquals('"Hello World!"', fC.Calc('"Hello " & "World" & "!"'), 'fails on "Hello " & "World" & "!"');
+
+  // str & num
+  CheckEquals('"My age is 18"', fC.Calc('"My age is " & 12+6'), 'fails on "My age is " & 12+6');
+  CheckEquals('"5 tests completed"', fC.Calc('5 + " tests completed"'), 'fails on 5 + " tests completed"');
+
+  // num & num
+  CheckEquals('"37"', fC.Calc('1 + 2 & 3 + 4'), 'fails on 1 + 2 & 3 + 4');
+
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestPower;
+begin
+  // power
+  fC := TWel.Create;
+
+  CheckEquals('8', fC.Calc('2^3'), 'fails on 2^3');
+  CheckEquals('3.16227766016838', fC.Calc('10^0.5'), 'fails on 10^0.5');
+  CheckEquals('1', fC.Calc('0^0'), 'fails on 0^0');
+  CheckEquals('1', fC.Calc('125.15^0'), 'fails on 125.15^0');
+  CheckEquals('256', fC.Calc('2^2^3'), 'fails on 2^2^4');
+
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestCompare;
+begin
+ fC := TWel.Create;
+
+ CheckEquals('1', fC.Calc('2*2 = 4'), 'fails on 2*2 = 4');                          // =    eq
+ CheckEquals('0', fC.Calc('"answer" = 42'), 'fails on "answer" = 42');              // <>   ne
+ CheckEquals('1', fC.Calc('4.99 <> 25/5'), 'fails on 4.99 <> 25/5');                // <    lt
+ CheckEquals('1', fC.Calc('"first" <> "second"'), 'fails on "first" <> "second"');  // >    gt
+ CheckEquals('0', fC.Calc('1 < -1'), 'fails on 1 < -1');                            // <=   le
+ CheckEquals('1', fC.Calc('99 < 99.1'), 'fails on 99 < 99.1');                      // >=   ge
+ CheckEquals('1', fC.Calc('"0" < "1"'), 'fails on "0" < "1"');
+ CheckEquals('0', fC.Calc('75>122'), 'fails on 75>122');
+ CheckEquals('1', fC.Calc('11>=11'), 'fails on 11>=11');
+ CheckEquals('0', fC.Calc('11>=88'), 'fails on 11>=88');
+ CheckEquals('0', fC.Calc('"0123" <= "012"'), 'fails on "0123" <= "012"');
+ 
+ FreeAndNil(fC);
+end;
+
 
 procedure TTestWelBasic.TestBrackets;
 begin
@@ -178,6 +263,12 @@ begin
   inherited;
   //
 end;
+
+
+
+
+
+
 
 
 
