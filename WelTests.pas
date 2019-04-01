@@ -22,7 +22,7 @@ type
     procedure TestConcat;
     procedure TestPower;
     procedure TestCompare;      
-
+    procedure TestAbs;
 
 
     procedure TestBrackets;
@@ -212,10 +212,22 @@ begin
  CheckEquals('1', fC.Calc('11>=11'), 'fails on 11>=11');
  CheckEquals('0', fC.Calc('11>=88'), 'fails on 11>=88');
  CheckEquals('0', fC.Calc('"0123" <= "012"'), 'fails on "0123" <= "012"');
- 
+
  FreeAndNil(fC);
 end;
 
+
+procedure TTestWelBasic.TestAbs;
+begin
+ fC := TWel.Create;
+
+ CheckEquals('1', fC.Calc('abs(1)'), 'fails on abs(1)');
+ CheckEquals('1.23456', fC.Calc('abs(1.23456)'), 'fails on abs(1.23456)');
+ CheckEquals('9', fC.Calc('abs(-9)'), 'fails on abs(-9)');
+ CheckEquals('9.87654', fC.Calc('abs(-9.87654)'), 'fails on abs(-9.87654)');
+
+ FreeAndNil(fC);
+end;
 
 procedure TTestWelBasic.TestBrackets;
 begin
@@ -263,6 +275,8 @@ begin
   inherited;
   //
 end;
+
+
 
 
 

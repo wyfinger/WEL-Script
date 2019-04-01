@@ -68,6 +68,7 @@ type
     function _gt(A, B: string): string;          //   >
     function _le(A, B: string): string;          //   <=
     function _ge(A, B: string): string;          //   >=
+    function _abs(A: string): string;
 
 
 
@@ -696,10 +697,12 @@ end;
 
 function TWel.Func(Name: string): string;
 begin
- if LowerCase(Name) = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
- if LowerCase(Name) = 'plus(' then Result := _add(fV.Pop(), fV.Pop()) else
- if LowerCase(Name) = 'len(' then Result := _len(fV.Pop()) else
- if LowerCase(Name) = 'map(' then Result := _map(fV.Pop(), fV.Pop()) else
+ Name := LowerCase(Name);
+ if Name = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
+ if Name = 'plus(' then Result := _add(fV.Pop(), fV.Pop()) else
+ if Name = 'len(' then Result := _len(fV.Pop()) else
+ if Name = 'map(' then Result := _map(fV.Pop(), fV.Pop()) else
+ if Name = 'abs(' then Result := _abs(fV.Pop()) else
  if FindUserFunc(Name, fV.Count - fLfac, False) = -1 then
    raise EWelException.CreateFmt('Function %s is undefined', [Name])
  else Result := UserFunc(Name, fV.Count - fLfac);
@@ -1009,19 +1012,16 @@ begin         // >=
  if (_eq(A, B) = '1') or (_gt(A, B) = '1') then Result := '1' else Result := '0';
 end;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+function TWel._abs(A: string): string;
+var           // >
+  ta, tb : TValType;
+begin
+ ta := GetValType(A);
+ if (ta = vtInteger) or (ta = vtFloat) then
+   Result := FloatToStr(Abs(StrToFloat(A)))
+ else
+   raise EWelException.Create('abs( function argument must be a number');
+end;
 
 
 end.
