@@ -69,12 +69,6 @@ type
     function _le(A, B: string): string;          //   <=
     function _ge(A, B: string): string;          //   >=
     function _abs(A: string): string;
-
-
-
-
-
-
     function _len(A: string): string;
     function _map(Arr, Func: string): string;
 
@@ -696,13 +690,53 @@ begin
 end;
 
 function TWel.Func(Name: string): string;
+var
+  n : string;
+  a : Integer;
+  v1,v2,v3 : string;
 begin
- Name := LowerCase(Name);
- if Name = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
- if Name = 'plus(' then Result := _add(fV.Pop(), fV.Pop()) else
- if Name = 'len(' then Result := _len(fV.Pop()) else
- if Name = 'map(' then Result := _map(fV.Pop(), fV.Pop()) else
- if Name = 'abs(' then Result := _abs(fV.Pop()) else
+ n := LowerCase(Name);
+ a := fV.Count - fLfac;
+ Result := '';
+
+ // functions with variable parameters count
+ if n = 'round(' then
+   if a = 1 then Result := FloatToStr(Round(StrToFloat(fV.Pop()))) else
+   if a = 2 then
+   begin
+     v2 := fV.Pop(); v1 := fV.Pop();  // in pascal func arguments compilations order are not defined!!!!
+     Result := FloatToStr(RoundTo(StrToFloat(v1), -1*StrToInt(v2)));
+   end else  raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
+ if Result <> '' then Exit;
+
+ // 1 argument functions
+ if (n = 'sin(') or (n = 'cos(') or (n = 'sqrt(') or (n = 'round(') or (n = 'frac(') or
+    (n = 'trunc(') or (n = 'len(') or (n = 'abs(')  then
+ begin
+   if a < 1 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
+   if a > 1 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
+   if n = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
+   if n = 'cos(' then Result := FloatToStr(Cos(StrToFloat(fV.Pop()))) else
+   if n = 'sqrt(' then Result := FloatToStr(Sqrt(StrToFloat(fV.Pop()))) else
+   if n = 'round(' then Result := FloatToStr(Round(StrToFloat(fV.Pop()))) else
+   if n = 'frac(' then Result := FloatToStr(Frac(StrToFloat(fV.Pop()))) else
+   if n = 'trunc(' then Result := FloatToStr(Trunc(StrToFloat(fV.Pop()))) else
+   if n = 'len(' then Result := _len(fV.Pop()) else
+   if n = 'abs(' then Result := _abs(fV.Pop());
+ end;
+ if Result <> '' then Exit;
+
+ // 2 arguments functions
+ if (n = 'plus(') or (n = 'map(')  then
+ begin
+   if (fV.Count - fLfac) < 2 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
+   if (fV.Count - fLfac) > 2 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
+   if Name = 'plus(' then Result := _add(fV.Pop(), fV.Pop()) else
+   if Name = 'map(' then Result := _map(fV.Pop(), fV.Pop());
+ end;
+ if Result <> '' then Exit;
+
+ // try to find in user function
  if FindUserFunc(Name, fV.Count - fLfac, False) = -1 then
    raise EWelException.CreateFmt('Function %s is undefined', [Name])
  else Result := UserFunc(Name, fV.Count - fLfac);
@@ -1013,7 +1047,7 @@ begin         // >=
 end;
 
 function TWel._abs(A: string): string;
-var           // >
+var
   ta, tb : TValType;
 begin
  ta := GetValType(A);
