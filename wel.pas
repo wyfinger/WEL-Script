@@ -704,7 +704,8 @@ begin
    if a = 1 then Result := FloatToStr(Round(StrToFloat(fV.Pop()))) else
    if a = 2 then
    begin
-     v2 := fV.Pop(); v1 := fV.Pop();  // in pascal func arguments compilations order are not defined!!!!
+     v2 := fV.Pop();  // in pascal func arguments compilations order are not defined!!!!
+     v1 := fV.Pop();
      Result := FloatToStr(RoundTo(StrToFloat(v1), -1*StrToInt(v2)));
    end else  raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
  if Result <> '' then Exit;
@@ -731,8 +732,10 @@ begin
  begin
    if (fV.Count - fLfac) < 2 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
    if (fV.Count - fLfac) > 2 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
-   if Name = 'plus(' then Result := _add(fV.Pop(), fV.Pop()) else
-   if Name = 'map(' then Result := _map(fV.Pop(), fV.Pop());
+   v2 := fV.Pop();
+   v1 := fV.Pop();
+   if Name = 'plus(' then Result := _add(v1, v2) else
+   if Name = 'map(' then Result := _map(v1, v2);
  end;
  if Result <> '' then Exit;
 
