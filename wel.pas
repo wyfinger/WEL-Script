@@ -389,10 +389,10 @@ begin
                                       else Inc(i);
                                     end;
                                 end
-                              else begin                               // this is a variable or function
-                                if LowerCase(a) = 'nil' then begin fV.Push(''); Exit; end;
-                                if LowerCase(a) = 'true' then begin fV.Push('1'); Exit; end;
-                                if LowerCase(a) = 'false' then begin fV.Push('0'); Exit; end;
+                              else begin                           // this is a variable or function
+                                if LowerCase(a) = 'nil' then begin fV.Push(''); Break; end;
+                                if LowerCase(a) = 'true' then begin fV.Push('1'); Break; end;
+                                if LowerCase(a) = 'false' then begin fV.Push('0'); Break; end;
                                 if FindUserFunc(a, -1, False) > -1 then
                                 begin
                                   fV.Push('@'+a);
@@ -716,14 +716,17 @@ begin
  begin
    if a < 1 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
    if a > 1 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
-   if n = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
-   if n = 'cos(' then Result := FloatToStr(Cos(StrToFloat(fV.Pop()))) else
-   if n = 'sqrt(' then Result := FloatToStr(Sqrt(StrToFloat(fV.Pop()))) else
-   if n = 'round(' then Result := FloatToStr(Round(StrToFloat(fV.Pop()))) else
-   if n = 'frac(' then Result := FloatToStr(Frac(StrToFloat(fV.Pop()))) else
-   if n = 'trunc(' then Result := FloatToStr(Trunc(StrToFloat(fV.Pop()))) else
-   if n = 'len(' then Result := _len(fV.Pop()) else
-   if n = 'abs(' then Result := _abs(fV.Pop());
+   try                             // functions from Math
+     if n = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
+     if n = 'cos(' then Result := FloatToStr(Cos(StrToFloat(fV.Pop()))) else
+     if n = 'sqrt(' then Result := FloatToStr(Sqrt(StrToFloat(fV.Pop()))) else
+     if n = 'frac(' then Result := FloatToStr(Frac(StrToFloat(fV.Pop()))) else
+     if n = 'trunc(' then Result := FloatToStr(Trunc(StrToFloat(fV.Pop()))) else
+     if n = 'abs(' then Result := FloatToStr(Abs(StrToFloat(fV.Pop())))
+   except
+     raise EWelException.Create(Name + ' function argument must be a number');
+   end;
+     if n = 'len(' then Result := _len(fV.Pop());
  end;
  if Result <> '' then Exit;
 
@@ -738,6 +741,18 @@ begin
    if Name = 'map(' then Result := _map(v1, v2);
  end;
  if Result <> '' then Exit;
+
+ // 3 arguments functions
+ if (n = 'if(') then
+ begin
+   if (fV.Count - fLfac) < 3 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
+   if (fV.Count - fLfac) > 3 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
+   v3 := fV.Pop();
+   v2 := fV.Pop();
+   v1 := fV.Pop();
+   if Name = 'if(' then if v1 = '1' then Result := v2 else Result := v3;
+ end;
+ if Result <> '' then Exit;                                             
 
  // try to find in user function
  if FindUserFunc(Name, fV.Count - fLfac, False) = -1 then

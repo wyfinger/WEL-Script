@@ -10,6 +10,7 @@ type
     fC: TWel;
   private
     procedure TestDivideByZero;
+    procedure TestAbs;
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -21,8 +22,8 @@ type
     procedure TestDivide;
     procedure TestConcat;
     procedure TestPower;
-    procedure TestCompare;      
-    procedure TestAbs;
+    procedure TestCompare;
+    procedure TestMath;
 
 
     procedure TestBrackets;
@@ -80,6 +81,8 @@ begin
   CheckEquals('["6 kV","10 kV","35 kV","110 kV","220 kV"]', fC.Calc('[6 10 35 110 220] + " kV"'), 'fails on [6 10 35 110 220] + " kV"');
   // str + array
   CheckEquals('["Age is 18","Age is 6"]', fC.Calc('"Age is " + [18,6]'), 'fails on "Age is " + [18,6]');
+  // array with subarray + num
+  CheckEquals('[2,3,[3,4]]', fC.Calc('[1,2,[2,3]]+1'), 'fails on [1,2,[2,3]]+1');
   // array + array
   // TODO: only if length of arrays equal summ by elements
 
@@ -216,6 +219,22 @@ begin
  FreeAndNil(fC);
 end;
 
+procedure TTestWelBasic.TestMath;
+begin
+ // test Math functions with number arguments only. this is a light weight tests
+ fC := TWel.Create;
+
+ CheckEquals('0.564642473395035', fC.Calc('sin(0.6)'), 'fails on sin(0.6)');
+ CheckEquals('0.955336489125606', fC.Calc('cos(0.3)'), 'fails on cos(0.3)');
+ CheckEquals('1.73205080756888', fC.Calc('a:=sqrt(3)'), 'fails on a:=sqrt(3)');
+ CheckEquals('2', fC.Calc('round(a)'), 'fails on round(a)');
+ CheckEquals('1.73205', fC.Calc('round(a,5)'), 'fails on round(a,5)');
+ CheckEquals('0.73205080756888', fC.Calc('frac(a)'), 'fails on frac(a)');
+ CheckEquals('1', fC.Calc('trunc(a)'), 'fails on trunc(a)');
+ CheckEquals('8.6602540378444', fC.Calc('abs(-5*a)'), 'fails on abs(-5*a)');
+
+ FreeAndNil(fC);
+end;
 
 procedure TTestWelBasic.TestAbs;
 begin
@@ -262,6 +281,8 @@ begin
   fC.Free;
 end;
 
+
+
 { TTestWelComplex }
 
 procedure TTestWelComplex.SetUp;
@@ -275,15 +296,6 @@ begin
   inherited;
   //
 end;
-
-
-
-
-
-
-
-
-
 
 
 
