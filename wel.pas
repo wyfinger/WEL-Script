@@ -68,7 +68,6 @@ type
     function _gt(A, B: string): string;          //   >
     function _le(A, B: string): string;          //   <=
     function _ge(A, B: string): string;          //   >=
-    function _abs(A: string): string;
     function _len(A: string): string;
     function _map(Arr, Func: string): string;
 
@@ -1062,17 +1061,6 @@ end;
 function TWel._ge(A, B: string): string;
 begin         // >=
  if (_eq(A, B) = '1') or (_gt(A, B) = '1') then Result := '1' else Result := '0';
-end;
-
-function TWel._abs(A: string): string;
-var
-  ta, tb : TValType;
-begin
- ta := GetValType(A);
- if (ta = vtInteger) or (ta = vtFloat) then
-   Result := FloatToStr(Abs(StrToFloat(A)))
- else
-   raise EWelException.Create('abs( function argument must be a number');
 end;
 
 
