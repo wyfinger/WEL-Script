@@ -51,6 +51,7 @@ object Form1: TForm1
     Gutter.Font.Style = []
     Highlighter = SynPasSyn1
     Lines.UnicodeStrings = '//code'
+    ScrollBars = ssHorizontal
     OnChange = SynEdit1Change
     FontSmoothing = fsmNone
   end
