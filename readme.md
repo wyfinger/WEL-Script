@@ -8,8 +8,8 @@ WEL-Script is a simplest mathematical expression like programming language, as i
 
 Lets see:
 
-![](D:\Yandex.Disk\Dev\Delphi\WEL-Script\wtf.png)
+![](https://github.com/wyfinger/WEL-Script/blob/master/wtf.png)
 
 ### More info
 
-See [WelTests.pas]() file, tests are good help!
+See [WelTests.pas](https://github.com/wyfinger/WEL-Script/blob/master/WelTests.pas) file, tests are good help!
