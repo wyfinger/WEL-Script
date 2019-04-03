@@ -161,11 +161,11 @@ begin
    rigthExpr := Trim(Copy(Expr, i+2, Length(Expr)-i-1));
    // check type of leftVar: variable, array element or function
    i := 1;
-   if not (leftVar[i] in ['a'..'z', 'A'..'Z', '@']) then
+   if not (leftVar[i] in ['a'..'z', 'A'..'Z', 'À'..'ÿ', '@']) then
      raise EWelException.CreateFmt('Illegal variable name ''%s'' on left part of assignment operator',
        [leftVar]);
    v := vtVar;
-   while (i <= Length(leftVar)) and (leftVar[i] in ['a'..'z', 'A'..'Z','0'..'9','.','_', '(', '[']) do
+   while (i <= Length(leftVar)) and (leftVar[i] in ['a'..'z', 'A'..'Z', 'À'..'ÿ','0'..'9','.','_', '(', '[']) do
    begin
      case leftVar[i] of
        '(' : begin    // this is a function
@@ -197,7 +197,7 @@ begin
      vtFunction : begin                     // define user function
                // check arguments, it is must be a variables only
                for j := i+1 to Length(leftVar)-i do
-                 if not (leftVar[j] in [' ', 'a'..'z', 'A'..'Z','0'..'9','.','_', ',']) then
+                 if not (leftVar[j] in [' ', 'a'..'z', 'A'..'Z', 'À'..'ÿ','0'..'9','.','_', ',']) then
                    raise EWelException.CreateFmt('On user func "%s" define arguments must containe arguments only, without expression', [Copy(leftVar, 1, Pos('(', leftVar)-1)]);
                r := LowerCase(Copy(leftVar, 1, i));
                a := Trim(Copy(leftVar, i+1, Length(leftVar)-i-1));
@@ -342,10 +342,10 @@ begin
                 else Inc(i);
                 end;
             end;
-      'a'..'z', 'A'..'Z' : begin        // function or variable
+      'a'..'z', 'A'..'Z', 'À'..'ÿ' : begin        // function or variable
                               a := fE[i];
                               Inc(i);
-                              while (i <= Length(fE)) and (fE[i] in ['a'..'z', 'A'..'Z','0'..'9','.','_']) do
+                              while (i <= Length(fE)) and (fE[i] in ['a'..'z', 'A'..'Z', 'À'..'ÿ','0'..'9','.','_']) do
                               begin
                                 a := a + fE[i];
                                 Inc(i);

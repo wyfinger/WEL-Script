@@ -49,9 +49,11 @@ object Form1: TForm1
     Gutter.Font.Height = -11
     Gutter.Font.Name = 'Courier New'
     Gutter.Font.Style = []
+    Gutter.ShowLineNumbers = True
+    Gutter.Width = 20
     Highlighter = SynPasSyn1
     Lines.UnicodeStrings = '//code'
-    ScrollBars = ssHorizontal
+    ScrollBars = ssNone
     OnChange = SynEdit1Change
     FontSmoothing = fsmNone
   end
@@ -61,6 +63,7 @@ object Form1: TForm1
     Width = 321
     Height = 586
     Align = alRight
+    Color = clCream
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
