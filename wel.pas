@@ -4,7 +4,7 @@ interface
 
 
 uses
-  SysUtils, Classes, Math,
+  SysUtils, Classes, Math, StrUtils,
   Windows, Messages, Graphics, Controls, Forms, Dialogs, ExtCtrls;
 
 type
@@ -36,6 +36,7 @@ type
     fLfac : Integer; // last functiona arguments count
     fO, fV: TStack;
     fVars : TStringList;
+    fArgs : TList;
     function FindUserFunc(Func: string; ArgCount: Integer; ErrorIfNotFount: Boolean): Integer;
   private
     function readString(str: string; var i : Integer): string;
@@ -69,6 +70,7 @@ type
     function _le(A, B: string): string;          //   <=
     function _ge(A, B: string): string;          //   >=
     function _len(A: string): string;
+    function _between(Min, X, Max: string; Incl: string = '0'): string;
     function _map(Arr, Func: string): string;
 
 
@@ -134,6 +136,7 @@ begin
  fO := TStack.Create;
  fV := TStack.Create;
  fVars := TStringList.Create;
+ fArgs := TList.Create;
  //fVars.Add('a=1');
 // fE := Expr;
  fErr := '';
@@ -280,11 +283,15 @@ end;
 
 function TWel.DoWork(): string;
 var
-  i, j, d : Integer;
+  i, j, d, arg : Integer;
   a, p : string;
   pv : Boolean;
   inx : array of Integer;
   c : TWel;
+  function LastChar(A: string): string;
+  begin
+    Result := Copy(A, Length(A),1);
+  end;
 begin
   if Trim(fE) = '' then begin Result := ''; Exit; end;
   i := 1;
@@ -311,9 +318,10 @@ begin
                  end;
       // operators
       ')' : begin
-              while (fO.Count > 0) and (fO.Peek() <> '(') do
+              while (fO.Count > 0) and (LastChar(fO.Peek()) <> '(') do
                 CalcStep();
-              fO.Pop();
+              if fO.Peek() <> '(' then CalcStep() else // function call
+                fO.Pop();
               Inc(i);
             end;
       '[' : begin                   // this is a array value
@@ -354,8 +362,8 @@ begin
                               begin
                                 while CanCalc(fE[i]) do
                                   CalcStep();
-                                fLfac := fV.Count;
-                                fO.Push(a + '(');
+                                fArgs.Add(Pointer(fV.Count));   // save values count in stack at start
+                                fO.Push(a + '(');               // of function call
                                 Inc(i);
                               end else if fE[i] = '[' then               // this is a array variabe
                                 begin
@@ -389,24 +397,16 @@ begin
                                     end;
                                 end
                               else begin                           // this is a variable or function
-                                if LowerCase(a) = 'nil' then begin fV.Push(''); Break; end;
-                                if LowerCase(a) = 'true' then begin fV.Push('1'); Break; end;
-                                if LowerCase(a) = 'false' then begin fV.Push('0'); Break; end;
-                                if FindUserFunc(a, -1, False) > -1 then
-                                begin
-                                  fV.Push('@'+a);
-                                  pv := True;
-                                end else
-                                if fVars.Values[a] <> '' then
-                                begin
-                                  fV.Push(fVars.Values[a]);
-                                  pv := True;
-                                end else
+                                if LowerCase(a) = 'nil' then begin fV.Push(''); pv := True; end else
+                                if LowerCase(a) = 'true' then begin fV.Push('1'); pv := True; end else
+                                if LowerCase(a) = 'false' then begin fV.Push('0'); pv := True; end else
+                                if FindUserFunc(a, -1, False) > -1 then begin fV.Push('@'+a); pv := True; end else
+                                if fVars.Values[a] <> '' then begin fV.Push(fVars.Values[a]); pv := True; end else
                                   raise EWelException.CreateFmt('Unknown variable ''%s''', [a]);
                               end;
                            end;
-      '+','-','*','/','\','%','&','^','(',',','=','<','>' : begin                                // one symbol operators
-                                      if not pv and ((fE[i] = '+') or (fE[i] = '-')) then
+      '+','-','*','/','\','%','&','^','(',',','=','<','>' : begin
+                                      if not pv and ((fE[i] = '+') or (fE[i] = '-')) then  // one symbol operators
                                       begin
                                         fV.Push('0');                        // zero element for sub
                                         pv := True;
@@ -430,8 +430,8 @@ begin
     end;
   end;
   Result := fV.Pop();
-  //if fV.Count > 0 then raise
-  //  ECalcException.Create('Wrong expression') // length must be 1, else raise error
+  if fV.Count > 0 then raise
+    EWelException.Create('Wrong expression') // length must be 1, else raise error
 end;
 
 procedure TWel.CalcStep;
@@ -442,7 +442,7 @@ begin
   W := fO.Pop();
   OutputDebugString(PChar(W));
   if W[Length(W)] = '(' then
-    fV.Push( Func(W) )
+    fV.Push( Func(W ) )
   else begin
     B := fV.Pop();
     A := fV.Pop();
@@ -692,10 +692,12 @@ function TWel.Func(Name: string): string;
 var
   n : string;
   a : Integer;
-  v1,v2,v3 : string;
+  v1,v2,v3,v4 : string;
 begin
  n := LowerCase(Name);
- a := fV.Count - fLfac;
+ a := fV.Count - Integer(fArgs[fArgs.Count-1]);  //
+ //ShowMessage(Name + ' ' + IntToStr(a) + ' arguments');
+ fArgs.Delete(fArgs.Count-1);
  Result := '';
 
  // functions with variable parameters count
@@ -707,6 +709,25 @@ begin
      v1 := fV.Pop();
      Result := FloatToStr(RoundTo(StrToFloat(v1), -1*StrToInt(v2)));
    end else  raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
+ if n = 'between(' then
+   begin
+     v4 := '0';
+     if a = 3 then
+       begin
+         v3 := fV.Pop();
+         v2 := fV.Pop();
+         v1 := fV.Pop();
+       end
+     else if a = 4 then
+       begin
+         v4 := fV.Pop();
+         v3 := fV.Pop();
+         v2 := fV.Pop();
+         v1 := fV.Pop();
+       end
+     else raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
+     Result := _between(v1, v2, v3, v4);
+   end;
  if Result <> '' then Exit;
 
  // 1 argument functions
@@ -1061,6 +1082,24 @@ end;
 function TWel._ge(A, B: string): string;
 begin         // >=
  if (_eq(A, B) = '1') or (_gt(A, B) = '1') then Result := '1' else Result := '0';
+end;
+
+function TWel._between(Min, X, Max: string; Incl: string = '0'): string;
+var
+  tmin, tx, tmax, tincl : TValType;
+begin
+ tmin := GetValType(Min);
+ tx := GetValType(X);
+ tmax := GetValType(Max);
+ tincl := GetValType(Incl);
+ if ((tmin = vtInteger) or (tmin = vtFloat)) and ((tx = vtInteger) or (tx = vtFloat)) and
+    ((tmax = vtInteger) or (tmax = vtFloat)) then
+   if Incl = '1' then
+     if (StrToFloat(X) >= StrToFloat(Min)) and (StrToFloat(X) <= StrToFloat(Max)) then
+       Result := '1' else Result := '0'
+   else
+     if (StrToFloat(X) > StrToFloat(Min)) and (StrToFloat(X) < StrToFloat(Max)) then
+       Result := '1' else Result := '0';
 end;
 
 

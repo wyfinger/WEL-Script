@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 689
+  Left = 703
   Top = 174
-  Width = 1185
+  Width = 1171
   Height = 624
   Caption = 'WEL Script  -  Wyfinger Expression Language'
   Color = clBtnFace
@@ -15,7 +15,7 @@ object Form1: TForm1
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
-    Left = 845
+    Left = 831
     Top = 0
     Height = 586
     Align = alRight
@@ -23,7 +23,7 @@ object Form1: TForm1
     ParentColor = False
   end
   object Splitter2: TSplitter
-    Left = 521
+    Left = 507
     Top = 0
     Height = 586
     Align = alRight
@@ -33,7 +33,7 @@ object Form1: TForm1
   object SynEdit1: TSynEdit
     Left = 0
     Top = 0
-    Width = 521
+    Width = 507
     Height = 586
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
@@ -58,7 +58,7 @@ object Form1: TForm1
     FontSmoothing = fsmNone
   end
   object SynEdit2: TSynEdit
-    Left = 524
+    Left = 510
     Top = 0
     Width = 321
     Height = 586
@@ -83,7 +83,7 @@ object Form1: TForm1
     FontSmoothing = fsmNone
   end
   object SynEdit3: TSynEdit
-    Left = 848
+    Left = 834
     Top = 0
     Width = 321
     Height = 586
