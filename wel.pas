@@ -4,7 +4,7 @@ interface
 
 
 uses
-  SysUtils, Classes, Math, StrUtils,
+  SysUtils, Classes, Math,
   Windows, Messages, Graphics, Controls, Forms, Dialogs, ExtCtrls;
 
 type
@@ -430,8 +430,8 @@ begin
     end;
   end;
   Result := fV.Pop();
-  if fV.Count > 0 then raise
-    EWelException.Create('Wrong expression') // length must be 1, else raise error
+  //if fV.Count > 0 then raise
+  //  EWelException.Create('Wrong expression') // length must be 1, else raise error
 end;
 
 procedure TWel.CalcStep;
