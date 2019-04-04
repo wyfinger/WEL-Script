@@ -550,14 +550,17 @@ var
   ind : array of Integer;
   e : string;
 begin
- if Length(inx) = 1 then
-   Result := GetArrVal(Arr, inx[0])
- else begin
-   e := GetArrVal(Arr, inx[0]);
-   SetLength(ind, Length(inx)-1);
-   for i := 0 to Length(inx)-2 do ind[i] := inx[i+1];
-   Result := GetArrValR(e, ind);
- end;
+ if GetValType(Arr) = vtString then
+   Result := '"' + Copy(Copy(Arr, 2, Length(Arr)-2), inx[0], 1) + '"'
+ else
+   if Length(inx) = 1 then
+     Result := GetArrVal(Arr, inx[0])
+   else begin
+     e := GetArrVal(Arr, inx[0]);
+     SetLength(ind, Length(inx)-1);
+     for i := 0 to Length(inx)-2 do ind[i] := inx[i+1];
+     Result := GetArrValR(e, ind);
+   end;
 end;
 
 function TWel.SetArrVal(Arr, NewVal: string; n: Integer): string;
