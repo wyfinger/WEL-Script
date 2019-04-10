@@ -484,7 +484,7 @@ begin
  if fO.Count = 0 then Exit;
  p1 := GetPriority(Op);
  p2 := GetPriority(fO.Peek());
- Result := (p1 >= 0) and (p2 >= 0) and (p1 > p2);
+ Result := (p1 >= 0) and (p2 >= 0) and (p1 >= p2);
 end;
 
 function TWel.GetValType(Val: string): TValType;
