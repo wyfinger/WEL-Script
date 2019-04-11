@@ -70,7 +70,7 @@ type
     function _le(A, B: string): string;          //   <=
     function _ge(A, B: string): string;          //   >=
     function _len(A: string): string;
-    function _between(Min, X, Max: string; Incl: string = '0'): string;
+    function _in(Min, X, Max: string; Incl: string = '0'): string;
     function _map(Arr, Func: string): string;
 
 
@@ -712,7 +712,7 @@ begin
      v1 := fV.Pop();
      Result := FloatToStr(RoundTo(StrToFloat(v1), -1*StrToInt(v2)));
    end else  raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
- if n = 'between(' then
+ if n = 'in(' then
    begin
      v4 := '0';
      if a = 3 then
@@ -729,19 +729,24 @@ begin
          v1 := fV.Pop();
        end
      else raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
-     Result := _between(v1, v2, v3, v4);
+     Result := _in(v1, v2, v3, v4);
    end;
  if Result <> '' then Exit;
 
  // 1 argument functions
- if (n = 'sin(') or (n = 'cos(') or (n = 'sqrt(') or (n = 'round(') or (n = 'frac(') or
-    (n = 'trunc(') or (n = 'len(') or (n = 'abs(')  then
+ if (n = 'sin(') or (n = 'cos(') or (n = 'tan(') or (n = 'cotan(') or (n = 'arcsin(') or (n = 'arccos(') or
+    {(n = 'cos(') or (n = 'cos(') or (n = 'cos(') or (n = 'cos(') or} (n = 'sqrt(') or (n = 'round(') or
+    (n = 'frac(') or (n = 'trunc(') or (n = 'len(') or (n = 'abs(')  then
  begin
    if a < 1 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
    if a > 1 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
    try                             // functions from Math
      if n = 'sin(' then Result := FloatToStr(Sin(StrToFloat(fV.Pop()))) else
      if n = 'cos(' then Result := FloatToStr(Cos(StrToFloat(fV.Pop()))) else
+     if n = 'tan(' then Result := FloatToStr(Tan(StrToFloat(fV.Pop()))) else
+     if n = 'cotan(' then Result := FloatToStr(CoTan(StrToFloat(fV.Pop()))) else
+     if n = 'arcsin(' then Result := FloatToStr(ArcSin(StrToFloat(fV.Pop()))) else
+     if n = 'arccos(' then Result := FloatToStr(ArcCos(StrToFloat(fV.Pop()))) else
      if n = 'sqrt(' then Result := FloatToStr(Sqrt(StrToFloat(fV.Pop()))) else
      if n = 'frac(' then Result := FloatToStr(Frac(StrToFloat(fV.Pop()))) else
      if n = 'trunc(' then Result := FloatToStr(Trunc(StrToFloat(fV.Pop()))) else
@@ -754,14 +759,15 @@ begin
  if Result <> '' then Exit;
 
  // 2 arguments functions
- if (n = 'plus(') or (n = 'map(')  then
+ if (n = 'plus(') or (n = 'map(') or (n = 'hypot(')   then
  begin
    if (fV.Count - fLfac) < 2 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
    if (fV.Count - fLfac) > 2 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
    v2 := fV.Pop();
    v1 := fV.Pop();
-   if Name = 'plus(' then Result := _add(v1, v2) else
-   if Name = 'map(' then Result := _map(v1, v2);
+   if n = 'plus(' then Result := _add(v1, v2) else
+   if n = 'map(' then Result := _map(v1, v2) else
+   if n = 'hypot(' then Result := FloatToStr(Hypot(StrToFloat(v1),StrToFloat(v2)));
  end;
  if Result <> '' then Exit;
 
@@ -773,7 +779,7 @@ begin
    v3 := fV.Pop();
    v2 := fV.Pop();
    v1 := fV.Pop();
-   if Name = 'if(' then if v1 = '1' then Result := v2 else Result := v3;
+   if n = 'if(' then if v1 = '1' then Result := v2 else Result := v3;
  end;
  if Result <> '' then Exit;                                             
 
@@ -1087,7 +1093,7 @@ begin         // >=
  if (_eq(A, B) = '1') or (_gt(A, B) = '1') then Result := '1' else Result := '0';
 end;
 
-function TWel._between(Min, X, Max: string; Incl: string = '0'): string;
+function TWel._in(Min, X, Max: string; Incl: string = '0'): string;
 var
   tmin, tx, tmax, tincl : TValType;
 begin

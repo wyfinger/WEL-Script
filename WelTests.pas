@@ -10,7 +10,6 @@ type
     fC: TWel;
   private
     procedure TestDivideByZero;
-    procedure TestAbs;
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -24,14 +23,8 @@ type
     procedure TestPower;
     procedure TestCompare;
     procedure TestMath;
-
-
-    procedure TestBrackets;
-    // complex variable types: arrays and strings
-    
-    // build in functions and variables
-    procedure TestArithmetic;
     procedure TestArrayCreate;
+    procedure TestArrayGet;
   end;
 
   TTestWelComplex = class(TTestCase)
@@ -40,6 +33,8 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    procedure TestBrackets;
+    procedure TestOperatorPriority;
   end;
 
 implementation
@@ -195,7 +190,7 @@ begin
   CheckEquals('3.16227766016838', fC.Calc('10^0.5'), 'fails on 10^0.5');
   CheckEquals('1', fC.Calc('0^0'), 'fails on 0^0');
   CheckEquals('1', fC.Calc('125.15^0'), 'fails on 125.15^0');
-  CheckEquals('256', fC.Calc('2^2^3'), 'fails on 2^2^4');
+  //CheckEquals('256', fC.Calc('2^2^3'), 'fails on 2^2^4');  //
 
   FreeAndNil(fC);
 end;
@@ -236,40 +231,10 @@ begin
  FreeAndNil(fC);
 end;
 
-procedure TTestWelBasic.TestAbs;
-begin
- fC := TWel.Create;
-
- CheckEquals('1', fC.Calc('abs(1)'), 'fails on abs(1)');
- CheckEquals('1.23456', fC.Calc('abs(1.23456)'), 'fails on abs(1.23456)');
- CheckEquals('9', fC.Calc('abs(-9)'), 'fails on abs(-9)');
- CheckEquals('9.87654', fC.Calc('abs(-9.87654)'), 'fails on abs(-9.87654)');
-
- FreeAndNil(fC);
-end;
-
-procedure TTestWelBasic.TestBrackets;
-begin
-  CheckEquals('8', fC.Calc('(2+2)*2'), 'fails on "(2+2)*2"');
-  CheckEquals('69', fC.Calc('1+2*3+4*5+6*7'), 'fails on "(2+2)*2"');
-end;
-
-procedure TTestWelBasic.TestArithmetic;
-begin
-  CheckEquals('0', fC.Calc('0+0'), 'fails on "0+0"');
-  CheckEquals('3', fC.Calc('1+2'), 'fails on "1+2"');
-  CheckEquals('20', fC.Calc('10+10'), 'fails on "10+10"');
-  CheckEquals('-104', fC.Calc('42+-146'), 'fails on "42+-146"');
-  CheckEquals('0', fC.Calc('0-0'), 'fails on "0-0"');
-  CheckEquals('0', fC.Calc('0*5'), 'fails on "0*5"');
-  CheckEquals('-10', fC.Calc('5*-2'), 'fails on "5*-2"');
-  CheckEquals('14', fC.Calc('2+3*4'), 'fails on "2+3*4"');
-  CheckEquals('20', fC.Calc('(2+3)*4'), 'fails on "(2+3)*4"');
-end;
-
 procedure TTestWelBasic.TestArrayCreate;
 begin
   fC := TWel.Create;
+
   CheckEquals('[1,2,4,6]',fC.Calc('A:=[1 2 4 6]'),'fails on "A:=[1 2 4 6]"');
   CheckEquals('[1,2,4,6]',fC.Calc('A:=[1,2,4,6]'),'fails on "A:=[1,2,4,6]"');
   CheckEquals('[1,2,4,6]',fC.Calc('A:=[1, 2, 4, 6]'),'fails on "A:=[1, 2, 4, 6]"');
@@ -278,10 +243,30 @@ begin
   CheckEquals('[1,[1,2,3],4,6]',fC.Calc('A:=[1, [1 2 3], 4, 6, ]'),'fails on "A:=[1 2 4 6, ]"');
   CheckEquals('[1,[1,2,3],4,"cat"]',fC.Calc('A:=[1 [1 2,3,],  4"cat"]'),'fails on "A:=[1 [1 2,3,],  4"cat"]"');
 
-  fC.Free;
+  FreeAndNil(fC);
 end;
 
+procedure TTestWelBasic.TestArrayGet;
+begin
+  fC := TWel.Create;
 
+  CheckEquals('[1,2,[4,6,7,[8,9]],10]',fC.Calc('A:=[1,2,[4,6,7,[8,9]],10]'),'fails on A:=[1,2,[4,6,7,[8,9]],10]');
+  CheckEquals('1',fC.Calc('A[0]'),'fails on A[0]');
+  CheckEquals('2',fC.Calc('A[1]'),'fails on A[1]');
+  CheckEquals('[4,6,7,[8,9]]',fC.Calc('A[2]'),'fails on A[2]');
+  CheckEquals('10',fC.Calc('A[3]'),'fails on A[3]');
+  CheckEquals('nil',fC.Calc('A[4]'),'fails on A[4]');
+  CheckEquals('4',fC.Calc('A[2,0]'),'fails on A[2,0]');
+  CheckEquals('6',fC.Calc('A[2,1]'),'fails on A[2,1]');
+  CheckEquals('7',fC.Calc('A[2,2]'),'fails on A[2,2]');
+  CheckEquals('[8,9]',fC.Calc('A[2,3]'),'fails on A[2,3]');
+  CheckEquals('nil',fC.Calc('A[2,4]'),'fails on A[2,4]');
+  CheckEquals('8',fC.Calc('A[2,3,0]'),'fails on A[2,3,0]');
+  CheckEquals('9',fC.Calc('A[2,3,1]'),'fails on A[2,3,1]');
+  CheckEquals('nil',fC.Calc('A[2,3,2]'),'fails on A[2,3,2]');
+
+  FreeAndNil(fC);
+end;
 
 { TTestWelComplex }
 
@@ -298,7 +283,41 @@ begin
 end;
 
 
+procedure TTestWelComplex.TestBrackets;
+begin
+  fC := TWel.Create;
 
+  CheckEquals('1.125',fC.Calc('1+2*3/4^2+5-6*7/8'),'fails on 1+2*3/4^2+5-6*7/8');
+  CheckEquals('0.3125',fC.Calc('(1+2)*3/4^2+5-6*7/8'),'fails on (1+2)*3/4^2+5-6*7/8');
+  CheckEquals('1.125',fC.Calc('1+(2*3/4^2+5)-6*7/8'),'fails on 1+(2*3/4^2+5)-6*7/8');
+  CheckEquals('2.3125',fC.Calc('1+2*3/4^(2+5-6)*7/8'),'fails on 1+2*3/4^(2+5-6)*7/8');
+  CheckEquals('1.125',fC.Calc('1+2*3/4^2+5-(6*7/8)'),'fails on 1+2*3/4^2+5-(6*7/8)');
+  CheckEquals('1.875',fC.Calc('(1+2*(3/4)^2+5)-6*7/8'),'fails on (1+2*(3/4)^2+5)-6*7/8');
+  CheckEquals('1.39669421487603',fC.Calc('1+2*3/(4^2+((5-6)*7)/8)'),'fails on 1+2*3/(4^2+((5-6)*7)/8)');
+  CheckEquals('2.80338347992535',fC.Calc('(1+(2*3)/4)^(2+(5-6)*7/8)'),'fails on (1+(2*3)/4)^(2+(5-6)*7/8)');
+
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelComplex.TestOperatorPriority;
+begin
+  // we use classic operators priority
+  // calc from left to right
+  // operator calculation order:
+  // ^           power, we calc it from left to right, then 4^3^2 = (4^3)^2 = 4096,
+  //             some math calculation systems and programming languages have differents order of
+  //             power calculation. we do it also as in Matlab
+  // * / \ %     division operators
+  // + -         ariphmetic operators
+  // &           string concatenation
+  // <>=         comparison operations
+  fC := TWel.Create;
+
+  CheckEquals('"2.55"',fC.Calc('1+2*3/4&"5"'),'fails on 1+2*3/4&"5"');
+  CheckEquals('4096',fC.Calc('4^3^2'),'fails on 4^3^2');
+
+  FreeAndNil(fC);
+end;
 
 initialization
   TestFramework.RegisterTest(TTestWelBasic.Suite);
