@@ -49,6 +49,7 @@ type
     function UserFunc(Name: string; ArgCount: Integer): string;
     function Func(Name: string): string;
     function Map(Arr, B: string; Func: TMapFunc): string;
+    function PopFlatArr(ArgCount: Integer; ForFunc: string): string;
     //
     function _add(A,B: string): string;          //   +
     function _addx(A,B: string): string;
@@ -72,6 +73,10 @@ type
     function _len(A: string): string;
     function _in(Min, X, Max: string; Incl: string = '0'): string;
     function _map(Arr, Func: string): string;
+    function _min(ArgCount: Integer): string;
+    function _max(ArgCount: Integer): string;
+    function _sum(ArgCount: Integer): string;
+    function _avg(ArgCount: Integer): string;
 
 
   public
@@ -704,7 +709,15 @@ begin
  Result := '';
 
  // functions with variable parameters count
- if n = 'round(' then
+ if n = 'min(' then
+   Result := _min(a)
+ else if n = 'max(' then
+   Result := _max(a)
+ else if n = 'sum(' then
+   Result := _sum(a)
+ else if n = 'avg(' then
+   Result := _avg(a)
+ else if n = 'round(' then
    if a = 1 then Result := FloatToStr(Round(StrToFloat(fV.Pop()))) else
    if a = 2 then
    begin
@@ -1095,12 +1108,11 @@ end;
 
 function TWel._in(Min, X, Max: string; Incl: string = '0'): string;
 var
-  tmin, tx, tmax, tincl : TValType;
+  tmin, tx, tmax : TValType;
 begin
  tmin := GetValType(Min);
  tx := GetValType(X);
  tmax := GetValType(Max);
- tincl := GetValType(Incl);
  if ((tmin = vtInteger) or (tmin = vtFloat)) and ((tx = vtInteger) or (tx = vtFloat)) and
     ((tmax = vtInteger) or (tmax = vtFloat)) then
    if Incl = '1' then
@@ -1109,6 +1121,93 @@ begin
    else
      if (StrToFloat(X) > StrToFloat(Min)) and (StrToFloat(X) < StrToFloat(Max)) then
        Result := '1' else Result := '0';
+end;
+
+function TWel.PopFlatArr(ArgCount: Integer; ForFunc: string): string;
+var
+  i : Integer;
+  v,a : string;
+begin
+ // for variable arguments functions - extract arguments from a stack as a
+ // flat array - complex array rebuild to flat arrays
+ // ForFunc - name of used function to format error messages
+ if ArgCount = 0 then raise EWelException.Create(ForFunc + ' function must have one or more argument');
+ for i := 0 to ArgCount-1 do             // values are poped starting from the end
+   if i = 0 then v := fV.Pop() else v := v + ',' + fV.Pop();
+ for i := 1 to Length(v) do
+   if v[i] in ['0'..'9',',','.'] then a := a + v[i]
+   else if v[i] = '"' then raise EWelException.Create(ForFunc + ' function arguments must be a number or array with numbers'+IntToStr(i));
+ Result := '['+a+']';
+end;
+
+function TWel._min(ArgCount: Integer): string;
+var
+  i : Integer;
+  m,n : Double;
+  a : string;
+begin
+ // this is a variable arguments functions and we pop all values
+ // as a flat array and search in it
+ Result := '0';
+ a := PopFlatArr(ArgCount, 'min(');
+ m := StrToFloat( GetArrVal(a,0)); // initial value of min - first element
+ for i := 0 to GetArrLen(a)-1 do
+ begin
+   n := StrToFloat(GetArrVal(a,i));
+   if n<m then m := n;
+ end;
+ Result := FloatToStr(m);
+end;
+
+function TWel._max(ArgCount: Integer): string;
+var
+  i : Integer;
+  m,n : Double;
+  a : string;
+begin
+ // this is a variable arguments functions and we pop all values
+ // as a flat array and search in it
+ Result := '0';
+ a := PopFlatArr(ArgCount, 'max(');
+ m := StrToFloat( GetArrVal(a,0)); // initial value of min - first element
+ for i := 0 to GetArrLen(a)-1 do
+ begin
+   n := StrToFloat(GetArrVal(a,i));
+   if n>m then m := n;
+ end;
+ Result := FloatToStr(m);
+end;
+
+function TWel._sum(ArgCount: Integer): string;
+var
+  i : Integer;
+  m : Double;
+  a : string;
+begin
+ // this is a variable arguments functions and we pop all values
+ // as a flat array and search in it
+ Result := '0';
+ a := PopFlatArr(ArgCount, 'sum(');
+ m := 0;
+ for i := 0 to GetArrLen(a)-1 do
+   m := m + StrToFloat(GetArrVal(a,i));
+ Result := FloatToStr(m);
+end;
+
+function TWel._avg(ArgCount: Integer): string;
+var
+  i : Integer;
+  m : Double;
+  a : string;
+begin
+ // this is a variable arguments functions and we pop all values
+ // as a flat array and search in it
+ Result := '0';
+ a := PopFlatArr(ArgCount, 'avg(');
+ m := 0;
+ for i := 0 to GetArrLen(a)-1 do
+   m := m + StrToFloat(GetArrVal(a,i));
+ Result := FloatToStr(m/i);
 end;
 
 

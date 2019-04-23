@@ -25,6 +25,7 @@ type
     procedure TestMath;
     procedure TestArrayCreate;
     procedure TestArrayGet;
+    procedure TestAggregate;
   end;
 
   TTestWelComplex = class(TTestCase)
@@ -268,6 +269,22 @@ begin
   FreeAndNil(fC);
 end;
 
+procedure TTestWelBasic.TestAggregate;
+begin
+  // aggregate functions: min, max, sum and avg, this functions accept variable count
+  // of argumens - number or array with number elements
+  fC := TWel.Create;
+
+  CheckEquals('1',fC.Calc('min(1,2,3)'), 'fails on min(1,2,3)');
+  CheckEquals('0.1',fC.Calc('min(0.3,0.2,0.1)'), 'fails on min(0.3,0.2,0.1)');
+  CheckEquals('3',fC.Calc('max(1,[2,3],0)'), 'fails on max(1,[2,3],0)');
+  CheckEquals('6',fC.Calc('max(1,[2,[3,4,5],6]'), 'fails on max(1,[2,[3,4,5],6],0)');
+  CheckEquals('6',fC.Calc('sum(2,2,[2])'), 'fails on sum(2,2,[2])');
+  CheckEquals('2',fC.Calc('avg(2,2,[])'), 'fails on avg(2,2,[])');
+
+  FreeAndNil(fC);
+end;
+
 { TTestWelComplex }
 
 procedure TTestWelComplex.SetUp;
@@ -318,6 +335,8 @@ begin
 
   FreeAndNil(fC);
 end;
+
+
 
 initialization
   TestFramework.RegisterTest(TTestWelBasic.Suite);

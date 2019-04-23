@@ -2,7 +2,8 @@ program ide;
 
 uses
   Forms,
-  ideUnit1 in 'ideUnit1.pas' {Form1};
+  ideUnit1 in 'ideUnit1.pas' {Form1},
+  wel in 'wel.pas';
 
 {$R *.res}
 
