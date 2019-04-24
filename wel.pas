@@ -1188,6 +1188,10 @@ begin
  for i := 1 to Length(v) do
    if v[i] in ['0'..'9',',','.'] then a := a + v[i]
    else if v[i] = '"' then raise EWelException.Create(ForFunc + ' function arguments must be a number or array with numbers'+IntToStr(i));
+ // if we have zero length array in arguments - do not consider them
+ a := StringReplace(a,',,',',',[rfReplaceAll]);
+ if (Length(a) > 0) and (a[1] = ',') then a := Copy(a, 2, Length(a)-1);
+ if (Length(a) > 0) and (a[Length(a)] = ',') then a := Copy(a, 1, Length(a)-1);
  Result := '['+a+']';
 end;
 
