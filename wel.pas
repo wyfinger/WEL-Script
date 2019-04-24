@@ -73,6 +73,7 @@ type
     function _len(A: string): string;
     function _between(Min, X, Max: string; Incl: string = '0'): string;
     function _align(A, Arr: string): string;
+    function _in(A, Arr: string): string;
     function _map(Arr, Func: string): string;
     function _min(ArgCount: Integer): string;
     function _max(ArgCount: Integer): string;
@@ -343,8 +344,11 @@ begin
                           begin               
                             c := TWel.Create;
                             c.fVars.Text := fVars.Text;
-                            c.fE := '('+Copy(fE, j+1, i-j-2)+')';
-                            a := c.DoWork();   // TODO: DoWork
+                            c.fE := '('+Trim(Copy(fE, j+1, i-j-2))+')';
+                            if c.fE <> '()' then
+                              a := c.DoWork()   // TODO: DoWork
+                            else
+                              a := '';
                             while c.fV.Count > 0 do
                               a := c.fV.Pop()+ ',' + a;
                             c.Free;
@@ -773,7 +777,7 @@ begin
  if Result <> '' then Exit;
 
  // 2 arguments functions
- if (n = 'plus(') or (n = 'map(') or (n = 'hypot(') or (n = 'align(')  then
+ if (n = 'plus(') or (n = 'map(') or (n = 'hypot(') or (n = 'align(') or (n = 'in(') then
  begin
    if a < 2 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
    if a > 2 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
@@ -781,8 +785,9 @@ begin
    v1 := fV.Pop();
    if n = 'plus(' then Result := _add(v1, v2) else
    if n = 'map(' then Result := _map(v1, v2) else
-   if n = 'hypot(' then Result := FloatToStr(Hypot(StrToFloat(v1),StrToFloat(v2)));
-   if n = 'align(' then Result := _align(v1, v2);
+   if n = 'hypot(' then Result := FloatToStr(Hypot(StrToFloat(v1),StrToFloat(v2)))else
+   if n = 'align(' then Result := _align(v1, v2) else
+   if n = 'in(' then Result := _in(v1, v2);
  end;
  if Result <> '' then Exit;
 
@@ -1153,6 +1158,22 @@ begin
  Result := GetArrVal(Arr, n);
 end;
 
+function TWel._in(A, Arr: string): string;
+var
+  i : Integer;
+begin
+ // Arr contanin A check
+ if GetValType(Arr) <> vtArray then
+   raise EWelException.Create('_in( function second argument must be an array');
+ Result := '0';
+ for i := 0 to GetArrLen(Arr)-1 do
+   if GetArrVal(Arr,i) = A then
+   begin
+     Result := '1';
+     Exit;
+   end;
+end;
+
 function TWel.PopFlatArr(ArgCount: Integer; ForFunc: string): string;
 var
   i : Integer;
@@ -1241,4 +1262,7 @@ begin
 end;
 
 
+
+
 end.
+

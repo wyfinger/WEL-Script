@@ -27,6 +27,7 @@ type
     procedure TestArrayGet;
     procedure TestAggregate;
     procedure TestAlign;
+    procedure TestIn;
   end;
 
   TTestWelComplex = class(TTestCase)
@@ -297,7 +298,22 @@ begin
   CheckEquals('99.9', fC.Calc('align(99, [98,99.9])'), 'fails on align(99, [98,99.9])');
   CheckEquals('0', fC.Calc('align(-1, [5,9,-0,3])'), 'fails on align(-1, [5,9,-0,3])');
   CheckEquals('-10', fC.Calc('align(-9, [10,-10,+5,1-9])'), 'fails on align(-9, [10,-10,+5,1-9])');
-  
+
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestIn;
+begin
+  // in( functions check presence first argument value at second argument array
+  fC := TWel.Create;
+
+  CheckEquals('0', fC.Calc('in(99,[1,2,3])'), 'fails on in(99,[1,2,3])');
+  CheckEquals('1', fC.Calc('in(99,[1,2,3,99])'), 'fails on in(99,[1,2,3,99])');
+  CheckEquals('1', fC.Calc('in(0.1,[0.1,0.2,0.3])'), 'fails on in(0.1,[0.1,0.2,0.3])');
+  CheckEquals('1', fC.Calc('in("world",["hello", "world"])'), 'fails on in("world",["hello", "world"])');
+  CheckEquals('0', fC.Calc('in(42,[1,2,3,[5,42]])'), 'fails on in(42,[1,2,3,[5,42]])');
+  CheckEquals('0', fC.Calc('in(0.07,[])'), 'fails on in(0.07,[])');
+
   FreeAndNil(fC);
 end;
 
@@ -351,6 +367,8 @@ begin
 
   FreeAndNil(fC);
 end;
+
+
 
 
 

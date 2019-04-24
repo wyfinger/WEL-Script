@@ -5,7 +5,7 @@ uses
   Forms,
   GUITestRunner,
   TextTestRunner,
-  WelTests,
+  WelTests in 'WelTests.pas',
   wel in 'wel.pas';
 
 {$R *.RES}
