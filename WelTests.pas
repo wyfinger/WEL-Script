@@ -26,6 +26,7 @@ type
     procedure TestArrayCreate;
     procedure TestArrayGet;
     procedure TestAggregate;
+    procedure TestAlign;
   end;
 
   TTestWelComplex = class(TTestCase)
@@ -275,13 +276,28 @@ begin
   // of argumens - number or array with number elements
   fC := TWel.Create;
 
-  CheckEquals('1',fC.Calc('min(1,2,3)'), 'fails on min(1,2,3)');
-  CheckEquals('0.1',fC.Calc('min(0.3,0.2,0.1)'), 'fails on min(0.3,0.2,0.1)');
-  CheckEquals('3',fC.Calc('max(1,[2,3],0)'), 'fails on max(1,[2,3],0)');
-  CheckEquals('6',fC.Calc('max(1,[2,[3,4,5],6]'), 'fails on max(1,[2,[3,4,5],6],0)');
-  CheckEquals('6',fC.Calc('sum(2,2,[2])'), 'fails on sum(2,2,[2])');
-  CheckEquals('2',fC.Calc('avg(2,2,[])'), 'fails on avg(2,2,[])');
+  CheckEquals('1', fC.Calc('min(1,2,3)'), 'fails on min(1,2,3)');
+  CheckEquals('0.1', fC.Calc('min(0.3,0.2,0.1)'), 'fails on min(0.3,0.2,0.1)');
+  CheckEquals('3', fC.Calc('max(1,[2,3],0)'), 'fails on max(1,[2,3],0)');
+  CheckEquals('6', fC.Calc('max(1,[2,[3,4,5],6]'), 'fails on max(1,[2,[3,4,5],6],0)');
+  CheckEquals('6', fC.Calc('sum(2,2,[2])'), 'fails on sum(2,2,[2])');
+  CheckEquals('2', fC.Calc('avg(2,2,[])'), 'fails on avg(2,2,[])');
 
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestAlign;
+begin
+  // align is a function to round number value to a nearest of array elemets
+  fC := TWel.Create;
+
+  CheckEquals('0', fC.Calc('align(0.1, [0,0.5,1])'), 'fails on align(0.1, [0,0.5,1])');
+  CheckEquals('0', fC.Calc('align(0.5, [0,1])'), 'fails on align(0.5, [0,1])');
+  CheckEquals('1', fC.Calc('align(0.51, [0,1])'), 'fails on align(0.51, [0,1])');
+  CheckEquals('99.9', fC.Calc('align(99, [98,99.9])'), 'fails on align(99, [98,99.9])');
+  CheckEquals('0', fC.Calc('align(-1, [5,9,-0,3])'), 'fails on align(-1, [5,9,-0,3])');
+  CheckEquals('-10', fC.Calc('align(-9, [10,-10,+5,1-9])'), 'fails on align(-9, [10,-10,+5,1-9])');
+  
   FreeAndNil(fC);
 end;
 
@@ -335,6 +351,8 @@ begin
 
   FreeAndNil(fC);
 end;
+
+
 
 
 

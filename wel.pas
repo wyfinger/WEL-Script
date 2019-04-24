@@ -71,7 +71,8 @@ type
     function _le(A, B: string): string;          //   <=
     function _ge(A, B: string): string;          //   >=
     function _len(A: string): string;
-    function _in(Min, X, Max: string; Incl: string = '0'): string;
+    function _between(Min, X, Max: string; Incl: string = '0'): string;
+    function _align(A, Arr: string): string;
     function _map(Arr, Func: string): string;
     function _min(ArgCount: Integer): string;
     function _max(ArgCount: Integer): string;
@@ -725,7 +726,7 @@ begin
      v1 := fV.Pop();
      Result := FloatToStr(RoundTo(StrToFloat(v1), -1*StrToInt(v2)));
    end else  raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
- if n = 'in(' then
+ if n = 'between(' then
    begin
      v4 := '0';
      if a = 3 then
@@ -742,7 +743,7 @@ begin
          v1 := fV.Pop();
        end
      else raise EWelException.CreateFmt('Invalid parameters count in %s function', [Name]);
-     Result := _in(v1, v2, v3, v4);
+     Result := _between(v1, v2, v3, v4);
    end;
  if Result <> '' then Exit;
 
@@ -772,23 +773,24 @@ begin
  if Result <> '' then Exit;
 
  // 2 arguments functions
- if (n = 'plus(') or (n = 'map(') or (n = 'hypot(')   then
+ if (n = 'plus(') or (n = 'map(') or (n = 'hypot(') or (n = 'align(')  then
  begin
-   if (fV.Count - fLfac) < 2 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
-   if (fV.Count - fLfac) > 2 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
+   if a < 2 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
+   if a > 2 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
    v2 := fV.Pop();
    v1 := fV.Pop();
    if n = 'plus(' then Result := _add(v1, v2) else
    if n = 'map(' then Result := _map(v1, v2) else
    if n = 'hypot(' then Result := FloatToStr(Hypot(StrToFloat(v1),StrToFloat(v2)));
+   if n = 'align(' then Result := _align(v1, v2);
  end;
  if Result <> '' then Exit;
 
  // 3 arguments functions
  if (n = 'if(') then
  begin
-   if (fV.Count - fLfac) < 3 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
-   if (fV.Count - fLfac) > 3 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
+   if a < 3 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
+   if a > 3 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
    v3 := fV.Pop();
    v2 := fV.Pop();
    v1 := fV.Pop();
@@ -797,9 +799,9 @@ begin
  if Result <> '' then Exit;                                             
 
  // try to find in user function
- if FindUserFunc(Name, fV.Count - fLfac, False) = -1 then
+ if FindUserFunc(Name, a, False) = -1 then
    raise EWelException.CreateFmt('Function %s is undefined', [Name])
- else Result := UserFunc(Name, fV.Count - fLfac);
+ else Result := UserFunc(Name, a);
 end;
 
 function TWel._add(A, B: string): string;
@@ -1106,7 +1108,7 @@ begin         // >=
  if (_eq(A, B) = '1') or (_gt(A, B) = '1') then Result := '1' else Result := '0';
 end;
 
-function TWel._in(Min, X, Max: string; Incl: string = '0'): string;
+function TWel._between(Min, X, Max: string; Incl: string = '0'): string;
 var
   tmin, tx, tmax : TValType;
 begin
@@ -1121,6 +1123,34 @@ begin
    else
      if (StrToFloat(X) > StrToFloat(Min)) and (StrToFloat(X) < StrToFloat(Max)) then
        Result := '1' else Result := '0';
+end;
+
+function TWel._align(A, Arr: string): string;
+var
+  i,n : Integer;
+  s : string;
+  x,v,d,md : Double;
+begin
+ // round A to the nearest value in Arr
+ if not( GetValType(A) in [vtInteger, vtFloat]) then
+   raise EWelException.Create('align( function first argument must be a number');
+ x := StrToFloat(A);
+ if GetValType(Arr) <> vtArray then
+   raise EWelException.Create('align( function second argument must be an array');
+ for i := 0 to GetArrLen(Arr)-1 do
+ begin
+   s := GetArrVal(Arr,i);
+   if not( GetValType(a) in [vtInteger, vtFloat]) then
+     raise EWelException.Create('align( function second argument array must contain number elements only');
+   v := StrToFloat(s);
+   d := Abs(x - v);
+   if (i = 0) or (d < md) then
+   begin
+     md := d;
+     n := i;
+   end
+ end;
+ Result := GetArrVal(Arr, n);
 end;
 
 function TWel.PopFlatArr(ArgCount: Integer; ForFunc: string): string;
