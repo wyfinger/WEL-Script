@@ -4,8 +4,7 @@ interface
 
 
 uses
-  SysUtils, Classes, Math,
-  Windows, Messages, Graphics, Controls, Forms, Dialogs, ExtCtrls;
+  SysUtils, Classes, Math, Windows, Messages, Graphics, Controls, Forms, Dialogs, ExtCtrls;
 
 type
 
@@ -33,10 +32,11 @@ type
   TWel = class
     fE: string;
     fErr : string;
-    fLfac : Integer; // last functiona arguments count
+    fLfac : Integer; // last function arguments count
     fO, fV: TStack;
     fVars : TStringList;
     fArgs : TList;
+    fExistsFlag : Boolean; // if exists( func is exists in expression we need suppress 'Unknown variable' exceptions
     function FindUserFunc(Func: string; ArgCount: Integer; ErrorIfNotFount: Boolean): Integer;
   private
     function readString(str: string; var i : Integer): string;
@@ -79,8 +79,9 @@ type
     function _max(ArgCount: Integer): string;
     function _sum(ArgCount: Integer): string;
     function _avg(ArgCount: Integer): string;
-
-
+    function _exists(A: string): string;
+    function _is_num(A: string): string;
+    function _is_int(A: string): string;
   public
     constructor Create();
     destructor Free;
@@ -165,6 +166,7 @@ var
   inx : array of Integer;
 begin
  i := Pos(':=', Expr);   // left var can't contain strings or expression
+ fExistsFlag := False;
  if i > 0 then
  begin
    leftVar := Trim(Copy(Expr, 1, i-1));
@@ -172,8 +174,7 @@ begin
    // check type of leftVar: variable, array element or function
    i := 1;
    if not (leftVar[i] in ['a'..'z', 'A'..'Z', 'À'..'ÿ', '@']) then
-     raise EWelException.CreateFmt('Illegal variable name ''%s'' on left part of assignment operator',
-       [leftVar]);
+     raise EWelException.CreateFmt('Illegal variable name ''%s'' on left part of assignment operator', [leftVar]);
    v := vtVar;
    while (i <= Length(leftVar)) and (leftVar[i] in ['a'..'z', 'A'..'Z', 'À'..'ÿ','0'..'9','.','_', '(', '[']) do
    begin
@@ -412,6 +413,7 @@ begin
                                 if LowerCase(a) = 'false' then begin fV.Push('0'); pv := True; end else
                                 if FindUserFunc(a, -1, False) > -1 then begin fV.Push('@'+a); pv := True; end else
                                 if fVars.Values[a] <> '' then begin fV.Push(fVars.Values[a]); pv := True; end else
+                                if (LowerCase(fO.Peek())='exists(') or fExistsFlag then begin fV.Push('nil'); pv := True; end else  // exists( - spec function
                                   raise EWelException.CreateFmt('Unknown variable ''%s''', [a]);
                               end;
                            end;
@@ -753,8 +755,8 @@ begin
 
  // 1 argument functions
  if (n = 'sin(') or (n = 'cos(') or (n = 'tan(') or (n = 'cotan(') or (n = 'arcsin(') or (n = 'arccos(') or
-    {(n = 'cos(') or (n = 'cos(') or (n = 'cos(') or (n = 'cos(') or} (n = 'sqrt(') or (n = 'round(') or
-    (n = 'frac(') or (n = 'trunc(') or (n = 'len(') or (n = 'abs(')  then
+    (n = 'sqrt(') or (n = 'round(') or (n = 'frac(') or (n = 'trunc(') or (n = 'len(') or (n = 'abs(') or
+    (n = 'exists(') or (n = 'isnum(') or (n = 'isint(') then
  begin
    if a < 1 then raise EWelException.CreateFmt('Not enough actual parameters in %s function', [Name]);
    if a > 1 then raise EWelException.CreateFmt('Too many actual parameters in %s function', [Name]);
@@ -768,7 +770,10 @@ begin
      if n = 'sqrt(' then Result := FloatToStr(Sqrt(StrToFloat(fV.Pop()))) else
      if n = 'frac(' then Result := FloatToStr(Frac(StrToFloat(fV.Pop()))) else
      if n = 'trunc(' then Result := FloatToStr(Trunc(StrToFloat(fV.Pop()))) else
-     if n = 'abs(' then Result := FloatToStr(Abs(StrToFloat(fV.Pop())))
+     if n = 'abs(' then Result := FloatToStr(Abs(StrToFloat(fV.Pop()))) else
+     if n = 'exists(' then Result := _exists(fV.Pop()) else
+     if n = 'isnum(' then Result := _is_num(fV.Pop()) else
+     if n = 'isint(' then Result := _is_int(fV.Pop())
    except
      raise EWelException.Create(Name + ' function argument must be a number');
    end;
@@ -1265,8 +1270,25 @@ begin
  Result := FloatToStr(m/i);
 end;
 
+function TWel._exists(A: string): string;
+begin
+ if A <> 'nil' then Result := '1' else Result := '0';
+ fExistsFlag := True;
+end;
 
+function TWel._is_num(A: string): string;
+var
+  R : Extended;
+begin
+  if TryStrToFloat(A, R) then Result := '1' else Result := '0';
+end;
 
+function TWel._is_int(A: string): string;
+var
+  R : Integer;
+begin
+  if TryStrToInt(A, R) then Result := '1' else Result := '0';
+end;
 
 end.
 

@@ -10,6 +10,8 @@ type
     fC: TWel;
   private
     procedure TestDivideByZero;
+    procedure TestExistsNoParams;
+    procedure TestExistsMoreParams;
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -28,6 +30,7 @@ type
     procedure TestAggregate;
     procedure TestAlign;
     procedure TestIn;
+    procedure TestExists;
   end;
 
   TTestWelComplex = class(TTestCase)
@@ -368,11 +371,40 @@ begin
   FreeAndNil(fC);
 end;
 
+procedure TTestWelBasic.TestExists;
+begin
+  // exists( is a spec function, if it exists in calculation tree unexpected variables
+  // do not rise 'Unknown variable' exception
 
+  fC := TWel.Create;
 
+  CheckException(TestExistsNoParams, EWelException, 'falis on eists( without params, it must raise exceprion');
+  CheckException(TestExistsMoreParams, EWelException, 'falis on eists( with more params, it must raise exceprion');
 
+  CheckEquals('1',fC.Calc('exists(1)'),'fails on exists(1)');
+  CheckEquals('1',fC.Calc('exists(3.14)'),'fails on exists(3.14)');
+  CheckEquals('1',fC.Calc('exists("test")'),'fails on exists("test")');
+  CheckEquals('1',fC.Calc('exists([])'),'fails on exists([])');
+  fC.Calc('a:=1');
+  CheckEquals('1',fC.Calc('exists(a)'),'fails on exists(a)');
+  CheckEquals('0',fC.Calc('exists(b)'),'fails on exists(b)');
+  CheckEquals('0',fC.Calc('b:=exists(b)'),'fails on b:=exists(b)');
+  CheckEquals('1',fC.Calc('if(exists(a),a,"err")'),'fails on if(exists(a),a,"err")');
+  CheckEquals('"err"',fC.Calc('if(exists(c),c,"err")'),'fails on if(exists(c),c,"err")');
 
+  FreeAndNil(fC);
 
+end;
+
+procedure TTestWelBasic.TestExistsNoParams;
+begin
+  fC.Calc('exists()')
+end;
+
+procedure TTestWelBasic.TestExistsMoreParams;
+begin
+  fC.Calc('exists(1,2)')
+end;
 
 initialization
   TestFramework.RegisterTest(TTestWelBasic.Suite);
