@@ -30,8 +30,11 @@ type
     procedure TestArraySet;
     procedure TestAggregate;
     procedure TestAlign;
+    procedure TestBetween;
     procedure TestIn;
+    procedure TestMap;
     procedure TestExists;
+    procedure TestIsNum;
   end;
 
   TTestWelComplex = class(TTestCase)
@@ -172,7 +175,7 @@ end;
 procedure TTestWelBasic.TestConcat;
 begin
   // string concatenation (&) operator, it can be used with
-  // strings ot numbers or arrays, like a (+)
+  // strings and numbers or arrays, like a (+)
   fC := TWel.Create;
 
   // str & str
@@ -197,7 +200,7 @@ begin
   CheckEquals('3.16227766016838', fC.Calc('10^0.5'), 'fails on 10^0.5');
   CheckEquals('1', fC.Calc('0^0'), 'fails on 0^0');
   CheckEquals('1', fC.Calc('125.15^0'), 'fails on 125.15^0');
-  //CheckEquals('256', fC.Calc('2^2^3'), 'fails on 2^2^4');  //
+  //CheckEquals('256', fC.Calc('2^2^3'), 'fails on 2^2^4');  // see TestOperatorPriority
 
   FreeAndNil(fC);
 end;
@@ -284,11 +287,11 @@ procedure TTestWelBasic.TestArraySet;
 begin
   fC := TWel.Create;
 
-  CheckEquals('[[1,2],[3,4],[5,6],[7,8]]', fC.Calc('A := [[1 2] [3 4] [5 6] [7 8]]'), 'fails on "A := [[1 2] [3 4] [5 6] [7 8]]"');
-  CheckEquals('[[9,2],[3,4],[5,6],[7,8]]', fC.Calc('A[0,0]:=9'), 'fails on "A[0,0]:=9"');
-  CheckEquals('[[9,2],[3,4],[5,6],[7,9]]', fC.Calc('A[3,1]:=9'), 'fails on "A[3,1]:=9"');
-  CheckEquals('[[9,2],9,[5,6],[7,9]]', fC.Calc('A[1]:=9'), 'fails on "A[1]:=9"');
-  CheckEquals('[[9,2],9,9,[7,9]]', fC.Calc('A[A[0,1]]:=9'), 'fails on "A[A[0,1]]:=9"');
+  CheckEquals('[[1,2],[3,4],[5,6],[7,8]]', fC.Calc('A := [[1 2] [3 4] [5 6] [7 8]]'), 'fails on A := [[1 2] [3 4] [5 6] [7 8]]');
+  CheckEquals('[[9,2],[3,4],[5,6],[7,8]]', fC.Calc('A[0,0]:=9'), 'fails on A[0,0]:=9');
+  CheckEquals('[[9,2],[3,4],[5,6],[7,9]]', fC.Calc('A[3,1]:=9'), 'fails on A[3,1]:=9');
+  CheckEquals('[[9,2],9,[5,6],[7,9]]', fC.Calc('A[1]:=9'), 'fails on A[1]:=9');
+  CheckEquals('[[9,2],9,9,[7,9]]', fC.Calc('A[A[0,1]]:=9'), 'fails on A[A[0,1]]:=9');
 
   FreeAndNil(fC);
 end;
@@ -324,6 +327,30 @@ begin
   FreeAndNil(fC);
 end;
 
+procedure TTestWelBasic.TestBetween;
+begin
+  // between( value in range check
+  fC := TWel.Create;
+
+  CheckEquals('5', fC.Calc('X:=5'), 'X:=5');
+  CheckEquals('0', fC.Calc('between(0, X, 1)'), 'between(0, X, 1)');
+  CheckEquals('1', fC.Calc('between(0, X, 10)'), 'between(0, X, 10)');
+  CheckEquals('0', fC.Calc('between(5, X, 10)'), 'between(5, X, 10)');
+  CheckEquals('0', fC.Calc('between(5, X, 5)'), 'between(5, X, 5)');
+  CheckEquals('0', fC.Calc('between(10, X, 1)'), 'between(10, X, 1)');
+  CheckEquals('0', fC.Calc('between(1, X, 5)'), 'between(1, X, 5)');
+  CheckEquals('0', fC.Calc('between(1, X, 5, false)'), 'between(1, X, 5, false)');
+  CheckEquals('1', fC.Calc('between(1, X, 5, true)'), 'between(1, X, 5, true)');
+  CheckEquals('0', fC.Calc('between(5, X, 10)'), 'between(5, X, 10)');
+  CheckEquals('0', fC.Calc('between(5, X, 10, false)'), 'between(5, X, 10, false)');
+  CheckEquals('1', fC.Calc('between(5, X, 10, true)'), 'between(5, X, 10, true)');
+  CheckEquals('1', fC.Calc('between(X, X, X, true)'), 'between(X, X, X, true)');
+  CheckEquals('1', fC.Calc('between(9/3, 10/3, 11/3, true)'), 'between(9/3, 10/3, 11/3, true)');
+
+  FreeAndNil(fC);
+end;
+
+
 procedure TTestWelBasic.TestIn;
 begin
   // in( functions check presence first argument value at second argument array
@@ -336,6 +363,80 @@ begin
   CheckEquals('0', fC.Calc('in(42,[1,2,3,[5,42]])'), 'fails on in(42,[1,2,3,[5,42]])');
   CheckEquals('0', fC.Calc('in(0.07,[])'), 'fails on in(0.07,[])');
 
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestMap;
+begin
+  // map(array, func) - func was called for all elemenst in array
+  fC := TWel.Create;
+  
+  CheckEquals('@f1(a)', fC.Calc('f1(a):=a*2'), 'fails on f1(a):=a*2');
+  CheckEquals('2', fC.Calc('C:=2'), 'fails on C:=2');
+  CheckEquals('@f2(x)', fC.Calc('f2(x):=x*x/C'), 'fails on f2(x):=x*x/C');
+  CheckEquals('[1,2,[3,4]]', fC.Calc('b:=[1,2,[3,4]]'), 'fails on b:=[1,2,[3,4]]');
+  CheckEquals('[2,4,[6,8]]', fC.Calc('map(b,f1)'), 'fails on map(b,f1)');
+  CheckEquals('[2,4]', fC.Calc('A:=map([[1,2],[3,4]], max)'), 'fails on A:=map([[1,2],[3,4]], max)');
+  CheckEquals('[[5,6],[7,8],[9,10,11]]', fC.Calc('B:=[[5,6],[7,8],[9,10,11]]'), 'fails on B:=[[5,6],[7,8],[9,10,11]]');
+  CheckEquals('[6,8,11]', fC.Calc('map(B, max)'), 'fails on map(B, max)');
+  CheckEquals('[5,7,9]', fC.Calc('map(B, min)'), 'fails on map(B, min)');
+  CheckEquals('[11,15,30]', fC.Calc('map(B, sum)'), 'fails on map(B, sum)');
+  CheckEquals('[5.5,7.5,10]', fC.Calc('map(B, avg)'), 'fails on map(B, avg)');
+
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestExists;
+begin
+  // exists( is a spec function, if it exists in calculation tree unexpected variables
+  // do not rise 'Unknown variable' exception
+
+  fC := TWel.Create;
+
+  CheckException(TestExistsNoParams, EWelException, 'falis on eists( without params, it must raise exceprion');
+  CheckException(TestExistsMoreParams, EWelException, 'falis on eists( with more params, it must raise exceprion');
+
+  CheckEquals('1',fC.Calc('exists(1)'),'fails on exists(1)');
+  CheckEquals('1',fC.Calc('exists(3.14)'),'fails on exists(3.14)');
+  CheckEquals('1',fC.Calc('exists("test")'),'fails on exists("test")');
+  CheckEquals('1',fC.Calc('exists([])'),'fails on exists([])');
+  fC.Calc('a:=1');
+  CheckEquals('1',fC.Calc('exists(a)'),'fails on exists(a)');
+  CheckEquals('0',fC.Calc('exists(b)'),'fails on exists(b)');
+  CheckEquals('0',fC.Calc('b:=exists(b)'),'fails on b:=exists(b)');
+  CheckEquals('1',fC.Calc('if(exists(a),a,"err")'),'fails on if(exists(a),a,"err")');
+  CheckEquals('"err"',fC.Calc('if(exists(c),c,"err")'),'fails on if(exists(c),c,"err")');
+
+  FreeAndNil(fC); 
+end;
+
+procedure TTestWelBasic.TestExistsNoParams;
+begin
+  fC.Calc('exists()')
+end;
+
+procedure TTestWelBasic.TestExistsMoreParams;
+begin
+  fC.Calc('exists(1,2)')
+end;
+
+procedure TTestWelBasic.TestIsNum;
+begin
+  // Test isnum() abd isint functions
+
+  fC := TWel.Create;
+
+  CheckEquals('1',fC.Calc('A:=1'),'fails on A:=1');
+  CheckEquals('1.000001',fC.Calc('B:=1.000001'),'fails on B:=1.000001');
+  CheckEquals('"foo"',fC.Calc('C:="foo"'),'fails on C:="foo"');
+  CheckEquals('[1,"A"]',fC.Calc('D:=[A, "A"]'),'fails on D:=[A, "A"]');
+  CheckEquals('@e(x)',fC.Calc('E(x):=x/2'),'fails on E(x):=x/2');
+  CheckEquals('@isnumfunc(x)',fC.Calc('isnumFunc(x):=isnum(x)'),'fails on isnumFunc(x):=isnum(x)');
+  CheckEquals('@isintfunc(x)',fC.Calc('isintFunc(x):=isint(x)'),'fails on isintFunc(x):=isint(x)');
+  CheckEquals('[1,1.000001,"foo",[1,"A"],@E]',fC.Calc('arr:=[A,B,C,D,E]'),'fails on arr:=[A,B,C,D,E]');
+  CheckEquals('[1,1,0,0,0]',fC.Calc('map(arr, isnumFunc)'),'fails on map(arr, isnumFunc)');
+  CheckEquals('[1,0,0,0,0]',fC.Calc('map(arr, isintFunc)'),'fails on map(arr, isintFunc)');
+  
   FreeAndNil(fC);
 end;
 
@@ -390,40 +491,7 @@ begin
   FreeAndNil(fC);
 end;
 
-procedure TTestWelBasic.TestExists;
-begin
-  // exists( is a spec function, if it exists in calculation tree unexpected variables
-  // do not rise 'Unknown variable' exception
 
-  fC := TWel.Create;
-
-  CheckException(TestExistsNoParams, EWelException, 'falis on eists( without params, it must raise exceprion');
-  CheckException(TestExistsMoreParams, EWelException, 'falis on eists( with more params, it must raise exceprion');
-
-  CheckEquals('1',fC.Calc('exists(1)'),'fails on exists(1)');
-  CheckEquals('1',fC.Calc('exists(3.14)'),'fails on exists(3.14)');
-  CheckEquals('1',fC.Calc('exists("test")'),'fails on exists("test")');
-  CheckEquals('1',fC.Calc('exists([])'),'fails on exists([])');
-  fC.Calc('a:=1');
-  CheckEquals('1',fC.Calc('exists(a)'),'fails on exists(a)');
-  CheckEquals('0',fC.Calc('exists(b)'),'fails on exists(b)');
-  CheckEquals('0',fC.Calc('b:=exists(b)'),'fails on b:=exists(b)');
-  CheckEquals('1',fC.Calc('if(exists(a),a,"err")'),'fails on if(exists(a),a,"err")');
-  CheckEquals('"err"',fC.Calc('if(exists(c),c,"err")'),'fails on if(exists(c),c,"err")');
-
-  FreeAndNil(fC);
-
-end;
-
-procedure TTestWelBasic.TestExistsNoParams;
-begin
-  fC.Calc('exists()')
-end;
-
-procedure TTestWelBasic.TestExistsMoreParams;
-begin
-  fC.Calc('exists(1,2)')
-end;
 
 initialization
   TestFramework.RegisterTest(TTestWelBasic.Suite);
