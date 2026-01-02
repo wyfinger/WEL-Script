@@ -27,6 +27,7 @@ type
     procedure TestMath;
     procedure TestArrayCreate;
     procedure TestArrayGet;
+    procedure TestArraySet;
     procedure TestAggregate;
     procedure TestAlign;
     procedure TestIn;
@@ -247,7 +248,9 @@ begin
   CheckEquals('[1,2,4,6]',fC.Calc('A:=[1 2,4 6]'),'fails on "A:=[1 2,4 6]"');
   CheckEquals('[1,2,4,6]',fC.Calc('A:=[1, 2, 4, 6, ]'),'fails on "A:=[1 2 4 6, ]"');
   CheckEquals('[1,[1,2,3],4,6]',fC.Calc('A:=[1, [1 2 3], 4, 6, ]'),'fails on "A:=[1 2 4 6, ]"');
-  CheckEquals('[1,[1,2,3],4,"cat"]',fC.Calc('A:=[1 [1 2,3,],  4"cat"]'),'fails on "A:=[1 [1 2,3,],  4"cat"]"');
+  CheckEquals('[1,[1,2,3],4,"cat"]',fC.Calc('A:=[1 [1 2,3,],  4"cat"]'),'fails on "A:=[1 [1 2,3,],  4"cat"]"'); 
+  CheckEquals('[1,4,9]', fC.Calc('A := [1, 2*2, 3*3]'), 'fails on "A := [1, 2*2, 3*3]"');  
+  CheckEquals('[1,4,9]', fC.Calc('A := [1, 2*2, 3*3]'), 'fails on "A := [1, 2*2, 3*3]"');
 
   FreeAndNil(fC);
 end;
@@ -269,7 +272,23 @@ begin
   CheckEquals('nil',fC.Calc('A[2,4]'),'fails on A[2,4]');
   CheckEquals('8',fC.Calc('A[2,3,0]'),'fails on A[2,3,0]');
   CheckEquals('9',fC.Calc('A[2,3,1]'),'fails on A[2,3,1]');
-  CheckEquals('nil',fC.Calc('A[2,3,2]'),'fails on A[2,3,2]');
+  CheckEquals('nil',fC.Calc('A[2,3,2]'),'fails on A[2,3,2]');  
+  CheckEquals('2',fC.Calc('A[A[0]]'), 'fails on "A[A[0]]"');
+  CheckEquals('[4,6,7,[8,9]]',fC.Calc('A[A[0]+1]'), 'fails on "A[A[0]+1]"');
+  CheckEquals('7',fC.Calc('A[A[0]+1,A[1]]'), 'fails on "A[A[0]+1,A[1]]"');
+
+  FreeAndNil(fC);
+end;
+
+procedure TTestWelBasic.TestArraySet;
+begin
+  fC := TWel.Create;
+
+  CheckEquals('[[1,2],[3,4],[5,6],[7,8]]', fC.Calc('A := [[1 2] [3 4] [5 6] [7 8]]'), 'fails on "A := [[1 2] [3 4] [5 6] [7 8]]"');
+  CheckEquals('[[9,2],[3,4],[5,6],[7,8]]', fC.Calc('A[0,0]:=9'), 'fails on "A[0,0]:=9"');
+  CheckEquals('[[9,2],[3,4],[5,6],[7,9]]', fC.Calc('A[3,1]:=9'), 'fails on "A[3,1]:=9"');
+  CheckEquals('[[9,2],9,[5,6],[7,9]]', fC.Calc('A[1]:=9'), 'fails on "A[1]:=9"');
+  CheckEquals('[[9,2],9,9,[7,9]]', fC.Calc('A[A[0,1]]:=9'), 'fails on "A[A[0,1]]:=9"');
 
   FreeAndNil(fC);
 end;
