@@ -146,7 +146,7 @@ begin
  fVars := TStringList.Create;
  fArgs := TList.Create;
  //fVars.Add('a=1');
-// fE := Expr;
+ //fE := Expr;
  fErr := '';
 end;
 
@@ -232,7 +232,7 @@ begin
                fE := '('+Copy(Expr, i+1, Length(leftVar)-i-1)+')';
                leftVar := Copy(leftVar, 1, i-1);
                r := DoWork();
-               fV.fData.Text := ''; fO.fData.Text := '';
+               //fV.fData.Text := ''; fO.fData.Text := '';
                SetLength(inx, fV.Count+1);
                try
                  inx[fV.Count] := StrToInt(r);
@@ -242,7 +242,7 @@ begin
                  raise EWelException.Create('Array index must be integer, set');
                end;
                r := fVars.Values[leftVar];
-                 if GetValType(r) <> vtArray then r := '[0]';
+               if GetValType(r) <> vtArray then r := '[0]';
                fE := '('+rigthExpr+')';
                r := SetArrValR(r, DoWork(), inx);
                fVars.Values[leftVar] := r;
@@ -303,7 +303,7 @@ var
 begin
   if Trim(fE) = '' then begin Result := ''; Exit; end;
   i := 1;
-  while i <= Length(fE) do
+   while i <= Length(fE) do
   begin
     if (fE[i] = '/') and (Length(fE) > i) and (fE[i+1] = '/') then
     begin
@@ -388,21 +388,38 @@ begin
                                               Inc(i);
                                               if d = 0 then
                                               begin
-                                                fE := '('+Copy(fE, j+1, i-j-2)+')';
-                                                p := DoWork();
-                                                SetLength(inx, fV.Count+1);
-                                                try
-                                                  inx[fV.Count] := StrToInt(p);
-                                                  while fV.Count > 0 do
-                                                    begin
-                                                      p := fV.Pop();
-                                                      inx[fV.Count] := StrToInt(p);
-                                                    end;
+                                                c := TWel.Create;                        // 2025-12-30 fix
+                                                c.fVars.Text := fVars.Text;
+                                                c.fE := '('+Copy(fE, j+1, i-j-2)+')';
+                                                if c.fE <> '()' then
+                                                  p := c.DoWork()   // TODO: DoWork
+                                                else
+                                                  p := ''; 
+                                                // we have array of values fV[0], fV[1], .. p 
+                                                try  
+                                                  SetLength(inx, c.fV.Count+1);  
+                                                  inx[c.fV.Count] := StrToInt(p); 
+                                                  while c.fV.Count > 0 do
+                                                    inx[c.fV.Count] := StrToInt(c.fV.Pop());                                                    
+                                                  c.Free;                                                                                  
+                                                //fE := '('+Copy(fE, j+1, i-j-2)+')';    // ERROR
+                                                //p := DoWork();                       
+                                                //SetLength(inx, fV.Count+1);
+                                                //try
+                                                //  inx[fV.Count] := StrToInt(p);
+                                                //  while fV.Count > 0 do
+                                                //    begin
+                                                //      p := fV.Pop();
+                                                //      inx[fV.Count] := StrToInt(p);
+                                                //    end;
                                                 except
                                                   raise EWelException.Create('Array index must be integer, get');
                                                 end;
                                                 fV.Push(GetArrValR(fVars.Values[a], inx));
+                                                pv := True;
+                                                Break;  // fix                                                
                                               end;
+                                              
                                             end;
                                       else Inc(i);
                                     end;
