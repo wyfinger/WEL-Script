@@ -1,3 +1,7 @@
+//
+// Wel-script, small interpreter
+// https://github.com/wyfinger/WEL-Script
+//
 unit wel;
 
 interface
@@ -47,6 +51,7 @@ type
     //
     function GetValType(Val: string): TValType;
     function UserFunc(Name: string; ArgCount: Integer): string;
+    function IsAggregate(Name: string): Boolean;
     function Func(Name: string): string;
     function Map(Arr, B: string; Func: TMapFunc): string;
     function PopFlatArr(ArgCount: Integer; ForFunc: string): string;
@@ -60,7 +65,7 @@ type
     function _dividex(A, B: string): string;
     function _div(A,B: string): string;          //   \
     function _divx(A,B: string): string;
-    function _mod(A,B: string): string;          //   &
+    function _mod(A,B: string): string;          //   %
     function _modx(A,B: string): string;
     function _concat(A,B: string): string;       //   &
     function _power(A,B: string): string;        //   ^
@@ -220,7 +225,7 @@ begin
                    if a[i] = ',' then Inc(j);
                end else j := 0;
                i := FindUserFunc(r, j, False);
-               r := LowerCase(Copy(leftVar, 1, i)) + Copy(leftVar, i+1, Length(leftVar)-i);
+               r := LowerCase(Copy(leftVar, 1, i)) + LowerCase(Copy(leftVar, i+1, Length(leftVar)-i));
                if i = -1 then
                  fVars.Values['@'+r] := rigthExpr
                else
@@ -429,6 +434,7 @@ begin
                                 if LowerCase(a) = 'true' then begin fV.Push('1'); pv := True; end else
                                 if LowerCase(a) = 'false' then begin fV.Push('0'); pv := True; end else
                                 if FindUserFunc(a, -1, False) > -1 then begin fV.Push('@'+a); pv := True; end else
+                                if IsAggregate(a) then begin fV.Push(a); pv := True; end else
                                 if fVars.Values[a] <> '' then begin fV.Push(fVars.Values[a]); pv := True; end else
                                 if (LowerCase(fO.Peek())='exists(') or fExistsFlag then begin fV.Push('nil'); pv := True; end else  // exists( - spec function
                                   raise EWelException.CreateFmt('Unknown variable ''%s''', [a]);
@@ -686,6 +692,11 @@ begin
      raise EWelException.CreateFmt('Wrong arguments count in ''%s'' function', [Func])
    else
      raise EWelException.CreateFmt('Undefined function ''%s''', [Func]);
+end;
+
+function TWel.IsAggregate(Name: string): Boolean;
+begin
+  Result := (Name = 'min') or (Name = 'max') or (Name = 'sum') or (Name = 'avg');
 end;
 
 function TWel.UserFunc(Name: string; ArgCount: Integer): string;
@@ -1050,21 +1061,32 @@ end;
 function TWel._map(Arr, Func: string): string;
 var
   ta, tf : TValType;
-  i, a : Integer;
+  i, a : Integer; 
+  ia: Boolean;
+  v: string;
   c : TWel;
 begin
  ta := GetValType(Arr);
  tf := GetValType(Func);
- if (ta <> vtArray) or (tf <> vtFunction) then
+ ia := IsAggregate(Func);        // this is build in arrgegate function
+ if (ta <> vtArray) or not((tf = vtFunction) or ia) then
    raise EWelException.Create('map() function first argument must be a array, second argument must be a function');
- Func := Copy(Func, 2, Length(Func)-1);
- a := 1;
- i := FindUserFunc(Func, 1, False);
- if i = -1 then
- begin
-   i := FindUserFunc(Func, 2, False);
-   a := 2;
- end;
+ if ia then 
+   begin
+     i := 1; 
+     a := 1;
+   end
+ else  
+   begin
+     Func := Copy(Func, 2, Length(Func)-1);
+     a := 1;
+     i := FindUserFunc(Func, 1, False);  
+     if i = -1 then
+       begin
+         i := FindUserFunc(Func, 2, False);
+         a := 2;
+        end;
+   end;
  if i = -1 then raise EWelException.Create('In map() function second argument must be a '+
    'function with 1 or 2 arguments.'#13'First argument is element value, second argument is element index.');
  // call Func for all array elements
@@ -1072,8 +1094,9 @@ begin
  c.fVars.Text := fVars.Text;
  for i := 0 to GetArrLen(Arr)-1 do
  begin
-   if a = 1 then c.fE := Func + '(' + GetArrVal(Arr, i) + ')';
-   if a = 2 then c.fE := Func + '(' + GetArrVal(Arr, i) + ',' + IntToStr(i) +')';
+   v := GetArrVal(Arr, i);
+   if a = 1 then c.fE := Func + '(' + v + ')';
+   if a = 2 then c.fE := Func + '(' + v + ',' + IntToStr(i) +')';
    Arr := SetArrVal(Arr, c.DoWork, i);
  end;
  c.Free;
@@ -1306,6 +1329,8 @@ var
 begin
   if TryStrToInt(A, R) then Result := '1' else Result := '0';
 end;
+
+
 
 end.
 
